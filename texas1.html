@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Техасский Холдем</title>
+
+  <!-- Подключение Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      background-color: green;
+      color: white;
+      text-align: center;
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    .screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      overflow-x: hidden;
+    }
+
+    button {
+      margin: 10px;
+      padding: 15px 30px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: none;
+      background-color: #2e7d32;
+      color: white;
+      cursor: pointer;
+    }
+
+    canvas#gameCanvas {
+      display: block;
+      margin: auto;
+      border: 2px solid white;
+      background-color: #004400;
+    }
+
+    .controls {
+      margin-top: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .controls input {
+      padding: 5px;
+      font-size: 14px;
+      width: 90px;
+    }
+
+    #message, #pot {
+      margin-top: 10px;
+      font-size: 16px;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      margin: 5px 0;
+    }
+
+    #bot-stats {
+      margin-top: 10px;
+      font-size: 14px;
+      white-space: pre-line;
+    }
+
+    #style-visualization {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .player-chart {
+      width: 180px;
+      height: 180px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Меню -->
+<div id="menu-screen" class="screen">
+  <h2>Техасский Холдем</h2>
+  <button onclick="startSinglePlayer()">Один игрок</button>
+  <button onclick="startMultiplayer()">Два игрока</button>
+  <button onclick="startTournament()">Турнир</button>
+  <button onclick="showLeaderboard()">Лидерборд</button>
+</div>
+
+<!-- Экран лидерборда -->
+<div id="leaderboard-screen" class="screen" style="display: none;">
+  <h2>Лидерборд</h2>
+  <ul id="leaderboard"></ul>
+  <button onclick="backToMenu()">Назад</button>
+</div>
+
+<!-- Основная игра -->
+<div id="game-screen" class="screen" style="display: none;">
+  <canvas id="gameCanvas" width="1000" height="600"></canvas>
+
+  <div class="controls">
+    <button onclick="startGame()">Начать игру</button>
+    <button onclick="saveGame()">Сохранить</button>
+    <button onclick="loadGame()">Загрузить</button>
+
+    <!-- Управление для Игрока 1 -->
+    <div>
+      <input type="number" id="raiseAmount" placeholder="Сумма" min="1"/>
+      <button onclick="playerAction(0, 'check')">Игрок 1: Check / Call</button>
+      <button onclick="playerAction(0, 'raise')">Raise</button>
+      <button onclick="playerAction(0, 'fold')">Fold</button>
+    </div>
+
+    <!-- Управление для Игрока 3 -->
+    <div>
+      <input type="number" id="raiseAmountP3" placeholder="Сумма" min="1"/>
+      <button onclick="playerAction(2, 'check')">Игрок 3: Check / Call</button>
+      <button onclick="playerAction(2, 'raise')">Raise</button>
+      <button onclick="playerAction(2, 'fold')">Fold</button>
+    </div>
+  </div>
+
+  <div id="message">Добро пожаловать!</div>
+  <div id="pot">Банк: $0</div>
+  <div id="bot-stats"></div>
+
+  <!-- Визуализация стиля игры -->
+  <div id="style-visualization"></div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

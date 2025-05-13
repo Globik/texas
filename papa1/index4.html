@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Китайский Ананас II — Optimized Edition</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #1a1a1a;
+      color: #fff;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h2, h3 {
+      text-align: center;
+      margin-top: 20px;
+      color: #00ffcc;
+    }
+
+    .game-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 1000px;
+      width: 100%;
+      padding: 20px;
+    }
+
+    .player-zone, .bot-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 40px;
+    }
+
+    .hand, .dropzone {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .card {
+      width: 60px;
+      height: 90px;
+      background: white;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: bold;
+      color: black;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
+      cursor: grab;
+      transition: transform 0.2s ease;
+    }
+
+    .card:hover {
+      transform: scale(1.05);
+    }
+
+    .dropzone {
+      min-height: 100px;
+      background: #2e2e2e;
+      border: 2px dashed #00ffcc;
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 5px;
+    }
+
+    .row-label {
+      font-size: 16px;
+      color: #ccc;
+      margin-top: 10px;
+    }
+
+    .combo-name, .row-result {
+      font-size: 14px;
+      color: #aaa;
+      margin-top: 2px;
+    }
+
+    .score-tag {
+      font-size: 16px;
+      margin-left: 10px;
+      font-weight: bold;
+    }
+
+    .win-score {
+      color: #00ff88;
+    }
+
+    .lose-score {
+      color: #ff4d4d;
+    }
+
+    button {
+      padding: 10px 20px;
+      background-color: #00ffcc;
+      color: #000;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background-color: #00d6aa;
+    }
+
+    .result {
+      margin-top: 20px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .win {
+      color: #00ff88;
+    }
+
+    .loss {
+      color: #ff4d4d;
+    }
+
+    .stats {
+      margin-top: 10px;
+      font-size: 16px;
+      color: #aaa;
+    }
+
+    .discarded-card {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="game-container">
+
+  <!-- Бот -->
+  <div class="bot-zone">
+    <h3>🤖 Бот</h3>
+
+    <div style="display: flex; align-items: center;">
+      <div class="row-label">⬆ Верх (3 карты)</div>
+      <span class="score-tag" id="bot-top-score"></span>
+    </div>
+    <div id="bot-top" class="dropzone"></div>
+    <div id="bot-top-combo" class="combo-name"></div>
+
+    <div style="display: flex; align-items: center;">
+      <div class="row-label">🟰 Средний (5 карт)</div>
+      <span class="score-tag" id="bot-middle-score"></span>
+    </div>
+    <div id="bot-middle" class="dropzone"></div>
+    <div id="bot-middle-combo" class="combo-name"></div>
+
+    <div style="display: flex; align-items: center;">
+      <div class="row-label">⬇ Низ (5 карт)</div>
+      <span class="score-tag" id="bot-bottom-score"></span>
+    </div>
+    <div id="bot-bottom" class="dropzone"></div>
+    <div id="bot-bottom-combo" class="combo-name"></div>
+  </div>
+
+  <!-- Игрок -->
+  <div class="player-zone">
+    <h3>🃏 Ваши начальные карты</h3>
+    <div class="hand" id="player-initial-cards"></div>
+
+    <button onclick="startPlayerTurn()">✅ Готово</button>
+
+    <h3 class="hidden" id="extra-title">➕ Дополнительные карты</h3>
+    <div class="hand hidden" id="player-extra-cards"></div>
+
+    <h3 id="discard-zone-label" class="hidden">🪫 Сброшенные карты</h3>
+    <div class="hand hidden" id="discard-zone"></div>
+
+    <p id="discard-info" class="hidden">Выберите карту для сброса:</p>
+    <button id="discard-btn" class="hidden" onclick="discardCard()">🗑️ Сбросить</button>
+
+    <h3 class="hidden" id="layout-title">🧮 Ваша раскладка</h3>
+    <div id="layout-section" class="hidden" style="width: 100%;">
+      <div style="display: flex; align-items: center;">
+        <div class="row-label">⬆ Верх (3 карты)</div>
+        <span class="score-tag" id="top-score"></span>
+      </div>
+      <div id="top" class="dropzone"></div>
+      <div id="top-combo" class="combo-name"></div>
+
+      <div style="display: flex; align-items: center;">
+        <div class="row-label">🟰 Средний ряд (5 карт)</div>
+        <span class="score-tag" id="middle-score"></span>
+      </div>
+      <div id="middle" class="dropzone"></div>
+      <div id="middle-combo" class="combo-name"></div>
+
+      <div style="display: flex; align-items: center;">
+        <div class="row-label">⬇ Низ (5 карт)</div>
+        <span class="score-tag" id="bottom-score"></span>
+      </div>
+      <div id="bottom" class="dropzone"></div>
+      <div id="bottom-combo" class="combo-name"></div>
+
+      <button onclick="finishGame()">🏁 Завершить игру</button>
+    </div>
+
+    <p id="foul-error" style="color: red; font-weight: bold;"></p>
+    <p id="result" class="result"></p>
+    <p id="stats" class="stats"></p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/pokersolver @2.2.0/PokerSolver.min.js"></script>
+<script>
+const suits = ['♠', '♣', '♦', '♥'];
+const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+
+let deck = [];
+let playerInitial = [], playerExtra = [], playerFinal = [];
+let botInitial = [], botExtra = [], botFinal = [];
+
+// Создание колоды
+function createDeck() {
+  let d = [];
+  for (let s of suits) {
+    for (let r of ranks) {
+      d.push(r + s);
+    }
+  }
+  return d;
+}
+
+// Перемешивание
+function shuffle(deck) {
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  return deck;
+}
+
+// Выбор уникальных карт
+function drawUnique(count) {
+  let result = [];
+  while (result.length < count && deck.length > 0) {
+    let card = deck.splice(Math.floor(Math.random() * deck.length), 1)[0];
+    result.push(card);
+  }
+  return result;
+}
+
+// Отображение карт
+function renderCards(containerId, cards) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  container.innerHTML = '';
+  for (let card of cards) {
+    let div = document.createElement('div');
+    div.className = 'card';
+    div.textContent = card;
+    div.draggable = true;
+
+    div.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', card);
+    });
+
+    container.appendChild(div);
+  }
+}
+
+// --- Обработчики drop ---
+document.querySelectorAll('[data-drop]').forEach(area => {
+  area.addEventListener('dragover', e => e.preventDefault());
+  area.addEventListener('drop', e => {
+    e.preventDefault();
+    const cardText = e.dataTransfer.getData('text/plain');
+
+    // Ищем оригинал
+    const cardDiv = document.querySelector(`[draggable][data-card='${cardText}']`) || 
+                    document.querySelector(`[draggable]:not(.discarded-card):contains('${cardText}')`);
+
+    const targetArea = e.target.closest('.dropzone');
+    if (!targetArea) return;
+
+    // Клонируем и удаляем оригинал
+    if (cardDiv && !targetArea.querySelector(`[data-card='${cardText}']`)) {
+      const clone = cardDiv.cloneNode(true);
+      clone.setAttribute('data-card', cardText);
+      clone.draggable = false;
+      targetArea.appendChild(clone);
+      cardDiv.remove();
+    }
+  });
+});
+
+// --- Функции игры ---
+window.startPlayerTurn = function () {
+  playerExtra = drawUnique(3);
+
+  const extraContainer = document.getElementById('player-extra-cards');
+  extraContainer.innerHTML = '';
+  playerExtra.forEach(card => {
+    let div = document.createElement('div');
+    div.className = 'card';
+    div.textContent = card;
+    div.draggable = true;
+
+    div.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', card);
+    });
+
+    extraContainer.appendChild(div);
+  });
+
+  document.getElementById('extra-title').classList.remove('hidden');
+  extraContainer.classList.remove('hidden');
+  document.getElementById('discard-zone-label').classList.remove('hidden');
+  document.getElementById('discard-zone').classList.remove('hidden');
+  document.getElementById('discard-info').classList.remove('hidden');
+  document.getElementById('discard-btn').classList.remove('hidden');
+  document.getElementById('layout-section').classList.remove('hidden');
+};
+
+window.discardCard = function () {
+  let extraCards = Array.from(document.getElementById('player-extra-cards').children);
+  let discardZone = document.getElementById('discard-zone');
+
+  alert("Нажмите на карту, чтобы сбросить её");
+
+  extraCards.forEach(card => {
+    card.onclick = () => {
+      if (!card.classList.contains('discarded-card')) {
+        card.classList.add('discarded-card');
+        card.style.opacity = '0.4';
+        card.style.pointerEvents = 'none';
+        card.draggable = false;
+
+        let clone = card.cloneNode(true);
+        clone.setAttribute('data-card', card.textContent);
+        discardZone.appendChild(clone);
+
+        card.remove(); // Удаляем из доп. карт
+      }
+    };
+  });
+};
+
+window.finishGame = function () {
+  const topPlayer = getCardsFromZone('top');
+  const middlePlayer = getCardsFromZone('middle');
+  const bottomPlayer = getCardsFromZone('bottom');
+
+  if (topPlayer.length !== 3 || middlePlayer.length !== 5 || bottomPlayer.length !== 5) {
+    alert("Пожалуйста, положите ровно:\n- 3 карты в Верх,\n- 5 карт в Средний,\n- 5 карт в Низ.");
+    return;
+  }
+
+  const strengthTop = getStrength(topPlayer);
+  const strengthMiddle = getStrength(middlePlayer);
+  const strengthBottom = getStrength(bottomPlayer);
+
+  if (strengthTop >= strengthMiddle || strengthMiddle >= strengthBottom) {
+    document.getElementById("foul-error").textContent = "❌ Вы сделали фол! Верх < Средний < Низ";
+  //  return;
+  } else {
+    document.getElementById("foul-error").textContent = "";
+  }
+
+  const botLayout = botPlay();
+
+  const resTop = compare(strengthTop, botLayout.topStrength);
+  const resMiddle = compare(strengthMiddle, botLayout.middleStrength);
+  const resBottom = compare(strengthBottom, botLayout.bottomStrength);
+
+  // Показываем результаты по рядам
+  document.getElementById("top-score").textContent = resTop === 1 ? "+1" : resTop === -1 ? "-1" : "0";
+  document.getElementById("top-score").className = resTop === 1 ? "score-tag win-score" : resTop === -1 ? "score-tag lose-score" : "score-tag";
+
+  document.getElementById("middle-score").textContent = resMiddle === 1 ? "+1" : resMiddle === -1 ? "-1" : "0";
+  document.getElementById("middle-score").className = resMiddle === 1 ? "score-tag win-score" : resMiddle === -1 ? "score-tag lose-score" : "score-tag";
+
+  document.getElementById("bottom-score").textContent = resBottom === 1 ? "+1" : resBottom === -1 ? "-1" : "0";
+  document.getElementById("bottom-score").className = resBottom === 1 ? "score-tag win-score" : resBottom === -1 ? "score-tag lose-score" : "score-tag";
+
+  let scorePlayer = 0, scoreBot = 0;
+
+  if (resTop === 1) scorePlayer++;
+  else if (resTop === -1) scoreBot++;
+
+  if (resMiddle === 1) scorePlayer++;
+  else if (resMiddle === -1) scoreBot++;
+
+  if (resBottom === 1) scorePlayer++;
+  else if (resBottom === -1) scoreBot++;
+
+  let win = scorePlayer > scoreBot;
+  if (win) {
+    document.getElementById('result').className = 'result win';
+    document.getElementById('result').textContent = `🎉 Вы победили! ${scorePlayer} : ${scoreBot}`;
+  } else {
+    document.getElementById('result').className = 'result loss';
+    document.getElementById('result').textContent = `😢 Вы проиграли. ${scorePlayer} : ${scoreBot}`;
+  }
+
+  saveStats(win);
+};
+
+function getCardsFromZone(zoneId) {
+  return Array.from(document.getElementById(zoneId).children)
+              .map(c => c.getAttribute('data-card') || c.textContent);
+}
+
+function getHandName(cards) {
+  try {
+    return PokerEvaluator.evaluateHand(prepareCards(cards)).name;
+  } catch (e) {
+    return "Неизвестно";
+  }
+}
+
+function getStrength(cards) {
+  try {
+    return PokerEvaluator.evaluateHand(prepareCards(cards)).value;
+  } catch (e) {
+    return 0;
+  }
+}
+
+function prepareCards(cards) {
+  return cards.map(c => c.replace('♠', 's').replace('♣', 'c').replace('♦', 'd').replace('♥', 'h'));
+}
+
+function getPokerValue(card) {
+  const valueMap = {
+    '2': 2, '3': 3, '4': 4, '5': 5,
+    '6': 6, '7': 7, '8': 8, '9': 9,
+    '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14
+  };
+  return valueMap[card.slice(0, card.length - 1)] || 0;
+}
+
+function compare(p, b) {
+  return p > b ? 1 : p < b ? -1 : 0;
+}
+
+function loadStats() {
+  let stats = JSON.parse(localStorage.getItem("chinese_poker_stats") || '{"wins":0,"losses":0}');
+  document.getElementById("stats").textContent = `Побед: ${stats.wins} | Поражений: ${stats.losses}`;
+}
+
+function saveStats(win) {
+  let stats = JSON.parse(localStorage.getItem("chinese_poker_stats") || '{"wins":0,"losses":0}');
+  if (win) stats.wins++;
+  else stats.losses++;
+  localStorage.setItem("chinese_poker_stats", JSON.stringify(stats));
+  loadStats();
+}
+
+// Логика бота
+function botPlay() {
+  botExtra = drawUnique(3);
+  let discardIndex = Math.floor(Math.random() * botExtra.length);
+  botExtra.splice(discardIndex, 1); // Сбрасывает одну карту
+
+  let botAll = [...botInitial, ...botExtra];
+  botAll.sort((a, b) => getPokerValue(b) - getPokerValue(a));
+
+  let top = botAll.slice(0, 3);
+  let middle = botAll.slice(3, 8);
+  let bottom = botAll.slice(8, 13);
+
+  renderCards('bot-top', top);
+  renderCards('bot-middle', middle);
+  renderCards('bot-bottom', bottom);
+
+  document.getElementById("bot-top-combo").textContent = getHandName(top);
+  document.getElementById("bot-middle-combo").textContent = getHandName(middle);
+  document.getElementById("bot-bottom-combo").textContent = getHandName(bottom);
+
+  return {
+    topStrength: getStrength(top),
+    middleStrength: getStrength(middle),
+    bottomStrength: getStrength(bottom),
+    topCombo: getHandName(top),
+    middleCombo: getHandName(middle),
+    bottomCombo: getHandName(bottom)
+  };
+}
+
+// --- Инициализация игры ---
+function resetGame() {
+  deck = shuffle(createDeck());
+
+  playerInitial = drawUnique(5);
+  botInitial = drawUnique(5);
+
+  clearElement('player-initial-cards');
+  clearElement('bot-initial-cards');
+  clearElement('player-extra-cards');
+  clearElement('discard-zone');
+  clearElement('top');
+  clearElement('middle');
+  clearElement('bottom');
+  clearElement('bot-top');
+  clearElement('bot-middle');
+  clearElement('bot-bottom');
+
+  document.getElementById('extra-title')?.classList.add('hidden');
+  document.getElementById('discard-zone-label')?.classList.add('hidden');
+  document.getElementById('discard-info')?.classList.add('hidden');
+  document.getElementById('discard-btn')?.classList.add('hidden');
+  document.getElementById('layout-section')?.classList.add('hidden');
+
+  renderCards('player-initial-cards', playerInitial);
+  renderCards('bot-initial-cards', botInitial);
+}
+
+function clearElement(id) {
+  const el = document.getElementById(id);
+  if (el) el.innerHTML = '';
+}
+
+function initDropZones() {
+  document.querySelectorAll('.dropzone').forEach(area => {
+    area.addEventListener('dragover', e => e.preventDefault());
+    area.addEventListener('drop', handleDrop);
+  });
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  const cardText = e.dataTransfer.getData('text/plain');
+  const cardDiv = document.querySelector(`.card:not(.discarded-card):not([data-card])`);
+  const target = e.currentTarget;
+
+  if (cardDiv && !target.querySelector(`[data-card='${cardText}']`)) {
+    const clone = cardDiv.cloneNode(true);
+    clone.setAttribute('data-card', cardText);
+    clone.draggable = false;
+    target.appendChild(clone);
+    cardDiv.remove();
+  }
+}
+
+// Автозапуск
+document.addEventListener("DOMContentLoaded", function () {
+  loadStats();
+  resetGame();
+  initDropZones();
+});
+</script>
+
+<!-- Для отображения статистики -->
+<p id="stats" class="stats"></p>
+
+</body>
+</html>

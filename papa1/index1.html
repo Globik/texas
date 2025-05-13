@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Техасский Холдем</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background-color: #0b3d91;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    .table {
+      width: 100%;
+      max-width: 400px;
+      height: 60vh;
+      border-radius: 20px;
+      background-color: green;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 0 10px black;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px;
+    }
+
+    .player-area {
+      text-align: center;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+
+    .player-top {
+      position: absolute;
+      top: 5px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+    }
+
+    .player-left,
+    .player-right {
+      position: absolute;
+      bottom: 65%;
+      transform: translateY(50%);
+      width: 45%;
+      font-size: 12px;
+    }
+
+    .player-left {
+      left: 5px;
+      text-align: left;
+    }
+
+    .player-right {
+      right: 5px;
+      text-align: right;
+    }
+
+    .cards {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 5px;
+    }
+
+    .card {
+      width: 60px;
+      height: 90px;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: bold;
+      color: black;
+      position: relative;
+      transition: transform 0.3s ease;
+      opacity: 0;
+      animation: flipIn 0.5s forwards;
+    }
+
+    .card.back {
+      background: repeating-linear-gradient(
+        45deg,
+        #888,
+        #888 10px,
+        #aaa 10px,
+        #aaa 20px
+      );
+      color: #666;
+      font-size: 24px;
+      font-weight: normal;
+    }
+
+    .card .rank {
+      position: absolute;
+      top: 6px;
+      left: 8px;
+      font-size: 16px;
+    }
+    .card .suit {
+      position: absolute;
+      bottom: 6px;
+      right: 8px;
+      font-size: 20px;
+    }
+
+    .card .center-suit {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+    }
+
+    /* Разноцветные масти */
+   /* .card .suit.hearts,
+    .card .suit.diamonds {
+      color: red;
+    }
+    .card .suit.spades,
+    .card .suit.clubs {
+      color: black;
+    }
+*/
+/* Цвета мастей */
+.card .hearts,
+.card .diamonds, .center-suit.hearts, .center-suit.diamonds{
+  color: red;
+}
+
+.card .spades,
+.card .clubs {
+  color: black;
+}
+
+
+    @keyframes flipIn {
+      from {
+        transform: scale(0.5) rotateY(90deg);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1) rotateY(0deg);
+        opacity: 1;
+      }
+    }
+
+    .community-cards {
+      position: absolute;
+      bottom: 20%;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 10;
+    }
+
+    .controls {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    button {
+      padding: 10px 15px;
+      font-size: 14px;
+      border: none;
+      border-radius: 8px;
+      background-color: gold;
+      color: black;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: orange;
+    }
+
+    .winner {
+      color: yellow;
+      font-weight: bold;
+    }
+/* @media screen and (max-width: 452px) and (orientation: portrait){*/
+    @media (max-width: 452px)  and (orientation: portrait){
+     
+     .table{
+		 height: 80vh;
+	 }
+      .card ,.card.back{
+        width: 70px;
+        height: 100px;
+        font-size: 14px;
+      }
+div.card.clubs,div.card.hearts,div.card.diamonds,div.card.spades{
+	width:70px;
+	height:100px;
+}
+      .player-area {
+        font-size: 12px;
+      }
+
+      .player-left,
+      .player-right {
+        bottom: 55%;
+        tansform: translateY(0);
+        wdth: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .community-cards {
+        bottom: 10%;
+
+      }
+    }
+  </style>
+</head>
+<body>
+
+<h1>Техасский Холдем</h1>
+<div class="table">
+
+  <!-- Игрок сверху -->
+  <div class="player-area player-top" id="area-player1">
+    Игрок 1 (ИИ)
+    <div class="cards" id="player1"></div>
+  </div>
+
+  <!-- Игрок слева -->
+  <div class="player-area player-left" id="area-player2">
+    Игрок 2 (ИИ)
+    <div class="cards" id="player2"></div>
+  </div>
+
+  <!-- Игрок справа -->
+  <div class="player-area player-right" id="area-player3">
+    Вы
+    <div class="cards" id="player3"></div>
+  </div>
+
+  <!-- Общие карты -->
+  <div class="community-cards" id="community"></div>
+</div>
+
+<!-- Управление -->
+<div class="controls">
+  <button onclick="deal()">Раздать</button>
+  <button onclick="nextRound()">Следующий раунд</button>
+  <button onclick="showResult()">Показать победителя</button>
+</div>
+
+<script>
+  const suits = ['♠', '♥', '♦', '♣'];
+  const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+
+  function createDeck() {
+    let deck = [];
+    for (let suit of suits) {
+      for (let rank of ranks) {
+        deck.push(rank + suit);
+      }
+    }
+    return deck;
+  }
+
+  function shuffle(deck) {
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+  }
+
+  function clearCards() {
+    for (let i = 1; i <= 3; i++) {
+      document.getElementById(`player${i}`).innerHTML = '';
+    }
+    document.getElementById('community').innerHTML = '';
+  }
+
+  const rankValue = {
+    '2': 2,
+    '3': 3,
+    '4': 4,
+    '5': 5,
+    '6': 6,
+    '7': 7,
+    '8': 8,
+    '9': 9,
+    '10': 10,
+    'J': 11,
+    'Q': 12,
+    'K': 13,
+    'A': 14
+  };
+
+  let game = {
+    deck: [],
+    communityCards: [],
+    playerHands: {},
+    round: 0
+  };
+
+  function deal() {
+    clearCards();
+    game.deck = createDeck();
+    shuffle(game.deck);
+
+    game.communityCards = [];
+
+    // Раздача по 2 карты
+    game.playerHands = {
+      player1: [game.deck.pop(), game.deck.pop()],
+      player2: [game.deck.pop(), game.deck.pop()],
+      player3: [game.deck.pop(), game.deck.pop()]
+    };
+
+    // Показываем только карты игрока (человека)
+    const humanCards = document.getElementById('player3');
+    game.playerHands.player3.forEach((card, i) => {
+      const cardEl = createCardElement(card);
+      humanCards.appendChild(cardEl);
+    });
+
+    // Остальные игроки показывают "рубашку"
+    for (let i = 1; i <= 2; i++) {
+      const container = document.getElementById(`player${i}`);
+      for (let j = 0; j < 2; j++) {
+        const cardEl = createCardElement('🂠'); // рубашка
+        container.appendChild(cardEl);
+      }
+    }
+
+    game.round = 0;
+  }
+
+  function nextRound() {
+    if (game.round >= 3) {
+      alert("Игра окончена");
+      return;
+    }
+
+    const rounds = [3, 1, 1]; // флоп, терн, ривер
+    const cardsToReveal = rounds[game.round];
+
+    for (let i = 0; i < cardsToReveal; i++) {
+      const card = game.deck.pop();
+      game.communityCards.push(card);
+
+      const cardEl = createCardElement(card);
+      document.getElementById('community').appendChild(cardEl);
+    }
+
+    game.round++;
+    if (game.round === 3) {
+      alert("Последняя карта открыта!");
+    }
+  }
+
+  function showResult() {
+    const allCommunity = game.communityCards;
+
+    const results = {};
+    for (const player in game.playerHands) {
+      const hand = game.playerHands[player];
+      const fullHand = [...hand, ...allCommunity];
+      const evaluated = evaluateHand(fullHand);
+      results[player] = evaluated;
+    }
+
+    const sorted = Object.entries(results).sort((a, b) => compareHands(a[1], b[1]));
+
+    const winner = sorted[0][0];
+
+    for (let i = 1; i <= 3; i++) {
+      const area = document.getElementById(`area-player${i}`);
+      area.classList.remove('winner');
+    }
+
+    const winnerArea = document.getElementById(`area-${winner}`);
+    winnerArea.classList.add('winner');
+
+    // Показываем все карты всех игроков
+    for (let i = 1; i <= 3; i++) {
+      const container = document.getElementById(`player${i}`);
+      container.innerHTML = '';
+      const cards = game.playerHands[`player${i}`];
+      cards.forEach((card, idx) => {
+        const el = createCardElement(card);
+        container.appendChild(el);
+      });
+    }
+
+    alert(`Победитель: ${winner.toUpperCase()}, Комбинация: ${results[winner].name}`);
+  }
+
+function createCardElement(card) {
+  const cardEl = document.createElement('div');
+  cardEl.className = 'card';
+  cardEl.style.animationDelay = '0ms';
+
+  if (card === '🂠') {
+    cardEl.classList.add('back');
+    cardEl.textContent = '🎴';
+    return cardEl;
+  }
+
+  const rank = getRank(card);
+  const suitChar = getSuit(card);
+  let suitClass = '';
+  switch (suitChar) {
+    case '♠': suitClass = 'spades'; break;
+    case '♥': suitClass = 'hearts'; break;
+    case '♦': suitClass = 'diamonds'; break;
+    case '♣': suitClass = 'clubs'; break;
+  }
+
+  // Применяем класс масти к самой карте, чтобы можно было стилизовать дочерние элементы
+  cardEl.classList.add(suitClass);
+
+  // HTML структура карты
+  cardEl.innerHTML = `
+    <div class="rank">${rank}</div>
+    <div class="suit ${suitClass}">${suitChar}</div>
+    <div class="center-suit ${suitClass}">${suitChar}</div>
+  `;
+
+  return cardEl;
+}
+
+
+
+
+  function getRank(card) {
+    return card.replace(/[♠♥♦♣]/g, '');
+  }
+
+  function getSuit(card) {
+    return card.slice(-1);
+  }
+
+  function sortCardsByRank(cards) {
+    return cards.sort((a, b) => rankValue[getRank(b)] - rankValue[getRank(a)]);
+  }
+
+  function evaluateHand(cards) {
+    cards = cards.map(c => ({ rank: getRank(c), suit: getSuit(c) }));
+    const rankCounts = {};
+    const suitCounts = {};
+
+    for (const card of cards) {
+      rankCounts[card.rank] = (rankCounts[card.rank] || 0) + 1;
+      suitCounts[card.suit] = (suitCounts[card.suit] || 0) + 1;
+    }
+
+    const ranks = Object.keys(rankCounts).sort((a, b) => rankValue[b] - rankValue[a]);
+    const suits = Object.keys(suitCounts);
+
+    const isFlush = suits.some(suit => suitCounts[suit] >= 5);
+    const straightRanks = getBestStraight(ranks);
+
+    let isStraight = !!straightRanks;
+
+    if (isFlush && isStraight) {
+      const flushCards = cards.filter(c => c.suit === suits.find(s => suitCounts[s] >= 5));
+      const flushRanks = flushCards.map(c => c.rank).filter(r => straightRanks.includes(r));
+      if (flushRanks.length >= 5 && getBestStraight(flushRanks)) {
+        if (flushRanks.includes('A') && flushRanks.includes('5')) {
+          return { strength: 8, kicker: [5], name: 'Стрит-флеш (5-4-3-2-A)' };
+        } else {
+          return { strength: 8, kicker: [rankValue[straightRanks[0]]], name: 'Стрит-флеш' };
+        }
+      }
+    }
+
+    for (const rank in rankCounts) {
+      if (rankCounts[rank] === 4) {
+        const kicker = sortRanks(
+          Object.keys(rankCounts).filter(r => r !== rank)
+        );
+        return {
+          strength: 7,
+          kicker: [rankValue[rank], ...kicker],
+          name: `Каре (${rank})`
+        };
+      }
+    }
+
+    let threeRank = null;
+    let pairRank = null;
+
+    for (const rank in rankCounts) {
+      if (rankCounts[rank] === 3) {
+        if (threeRank) {
+          pairRank = rank;
+        } else {
+          threeRank = rank;
+        }
+      } else if (rankCounts[rank] === 2) {
+        if (!threeRank) {
+          pairRank = rank;
+        } else {
+          pairRank = rank;
+          break;
+        }
+      }
+    }
+
+    if (threeRank && pairRank) {
+      return {
+        strength: 6,
+        kicker: [rankValue[threeRank], rankValue[pairRank]],
+        name: `Фулл-хаус (${threeRank} + ${pairRank})`
+      };
+    }
+
+    if (isFlush) {
+      const flushCards = cards
+        .filter(c => suitCounts[c.suit] >= 5)
+        .map(c => c.rank);
+      const topFive = sortRanks(flushCards).slice(0, 5);
+      return {
+        strength: 5,
+        kicker: topFive,
+        name: 'Флеш'
+      };
+    }
+
+    if (isStraight) {
+      return {
+        strength: 4,
+        kicker: [rankValue[straightRanks[0]]],
+        name: 'Стрит'
+      };
+    }
+
+    for (const rank in rankCounts) {
+      if (rankCounts[rank] === 3) {
+        const kicker = sortRanks(Object.keys(rankCounts).filter(r => r !== rank));
+        return {
+          strength: 3,
+          kicker: [rankValue[rank], ...kicker],
+          name: `Сет (${rank})`
+        };
+      }
+    }
+
+    const pairs = Object.keys(rankCounts).filter(r => rankCounts[r] === 2);
+    if (pairs.length >= 2) {
+      const topTwo = sortRanks(pairs).slice(0, 2);
+      const kicker = sortRanks(Object.keys(rankCounts).filter(r => !topTwo.includes(r)));
+      return {
+        strength: 2,
+        kicker: [...topTwo, ...kicker],
+        name: `Две пары (${pairs[0]} и ${pairs[1]})`
+      };
+    }
+
+    if (pairs.length === 1) {
+      const kicker = sortRanks(Object.keys(rankCounts).filter(r => r !== pairs[0]));
+      return {
+        strength: 1,
+        kicker: [rankValue[pairs[0]], ...kicker],
+        name: `Пара (${pairs[0]})`
+      };
+    }
+
+    const topFive = sortRanks(ranks).slice(0, 5);
+    return {
+      strength: 0,
+      kicker: topFive,
+      name: 'Старшая карта'
+    };
+  }
+
+  function getBestStraight(ranks) {
+    const numericRanks = ranks.map(r => rankValue[r]);
+    const uniqueSorted = [...new Set(numericRanks)].sort((a, b) => b - a);
+
+    for (let i = 0; i < uniqueSorted.length - 4; i++) {
+      if (uniqueSorted[i] - uniqueSorted[i + 4] === 4) {
+        return [ranks.find(r => rankValue[r] === uniqueSorted[i])];
+      }
+    }
+
+    if (
+      uniqueSorted.includes(14) &&
+      uniqueSorted.includes(2) &&
+      uniqueSorted.includes(3) &&
+      uniqueSorted.includes(4) &&
+      uniqueSorted.includes(5)
+    ) {
+      return ['5'];
+    }
+
+    return null;
+  }
+
+  function sortRanks(ranks) {
+    return ranks.map(r => rankValue[r]).sort((a, b) => b - a);
+  }
+
+  function compareHands(a, b) {
+    if (a.strength !== b.strength) {
+      return b.strength - a.strength;
+    }
+
+    for (let i = 0; i < Math.min(a.kicker.length, b.kicker.length); i++) {
+      if (a.kicker[i] !== b.kicker[i]) {
+        return b.kicker[i] - a.kicker[i];
+      }
+    }
+
+    return 0;
+  }
+</script>
+
+</body>
+</html>
