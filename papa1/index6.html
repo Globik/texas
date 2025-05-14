@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Китайский покер</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: #2c3e50;
+      color: white;
+      padding: 20px;
+    }
+    .hand,
+    .fields {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin: 20px;
+    }
+    .card {
+      width: 60px;
+      height: 90px;
+      border: 2px solid #ccc;
+      border-radius: 5px;
+      line-height: 90px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+    }
+    .selected {
+      border-color: gold;
+      background: #f1c40f;
+      color: black;
+    }
+    .field {
+      border: 2px dashed #777;
+      padding: 10px;
+      width: 300px;
+      min-height: 100px;
+      margin: 10px auto;
+      position: relative;
+      transition: background 0.3s, border 0.3s;
+    }
+    .field-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    /* Состояния валидности */
+    .field.valid {
+      border-color: green;
+      background-color: #2ecc71;
+    }
+    .field.invalid {
+      border-color: red;
+      background-color: #e74c3c;
+    }
+
+    .scoreboard {
+      margin-top: 20px;
+      font-size: 18px;
+      text-align: left;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .bot-fields {
+      margin-top: 30px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+
+    /* Анимации */
+    .game-result {
+      margin-top: 30px;
+      padding: 20px;
+      font-size: 24px;
+      border-radius: 10px;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    .win {
+      background-color: #2ecc71;
+      color: white;
+    }
+    .lose {
+      background-color: #e74c3c;
+      color: white;
+    }
+    .draw {
+      background-color: #95a5a6;
+      color: white;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Модальное окно */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.6);
+    }
+
+    .modal-content {
+      background-color: #1c1c1c;
+      margin: 15% auto;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 60%;
+      border-radius: 10px;
+      color: white;
+    }
+
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .close:hover {
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <h1>Китайский покер</h1>
+
+  <div class="hand" id="player-hand"></div>
+
+  <div class="fields">
+    <div>
+      <div class="field-title">Низ</div>
+      <div class="field" data-field="bottom" onclick="placeCards('bottom')"></div>
+    </div>
+    <div>
+      <div class="field-title">Середина</div>
+      <div class="field" data-field="middle" onclick="placeCards('middle')"></div>
+    </div>
+    <div>
+      <div class="field-title">Верх</div>
+      <div class="field" data-field="top" onclick="placeCards('top')"></div>
+    </div>
+  </div>
+
+  <button onclick="startGame()">Начать игру</button>
+  <button onclick="confirmLayout()">Подтвердить раскладку</button>
+
+  <div class="scoreboard" id="scoreboard"></div>
+
+  <!-- Блок для отображения полей бота -->
+  <div class="bot-fields" id="bot-fields" style="display: none;">
+    <h2>Раскладка бота</h2>
+    <div class="fields">
+      <div>
+        <div class="field-title">Низ</div>
+        <div class="field" id="bot-bottom"></div>
+      </div>
+      <div>
+        <div class="field-title">Середина</div>
+        <div class="field" id="bot-middle"></div>
+      </div>
+      <div>
+        <div class="field-title">Верх</div>
+        <div class="field" id="bot-top"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Анимация результата -->
+  <div id="result-animation" class="game-result" style="display: none;"></div>
+
+  <!-- Модальное окно -->
+  <div id="foulModal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeFoulModal()">&times;</span>
+      <h2>⚠️ Неверная раскладка!</h2>
+      <p>Вы допустили фол: старшинство полей нарушено.</p>
+      <p><strong>Правила:</strong></p>
+      <ul style="text-align: left; margin-left: auto; margin-right: auto;">
+        <li>Низ > Середина > Верх</li>
+        <li>Проверьте силу комбинаций</li>
+        <li>Можно улучшить раскладку</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    const suits = ['♠', '♥', '♦', '♣'];
+    const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+
+    let deck = [];
+    let playerHand = [];
+    let fields = {
+      bottom: [],
+      middle: [],
+      top: []
+    };
+
+    function createDeck() {
+      deck = [];
+      for (let suit of suits) {
+        for (let rank of ranks) {
+          deck.push({ suit, rank });
+        }
+      }
+    }
+
+    function shuffle(arr) {
+      return arr.sort(() => Math.random() - 0.5);
+    }
+
+    function startGame() {
+      createDeck();
+      deck = shuffle(deck);
+
+      // Раздача игроку
+      playerHand = deck.splice(0, 13);
+      renderHand();
+
+      // Сохраняем карты бота
+      const botHand = deck.splice(0, 13);
+      window.botHand = botHand;
+
+      // Сброс всех полей
+      fields = { bottom: [], middle: [], top: [] };
+      document.querySelectorAll('.field').forEach(f => f.innerHTML = '');
+      document.getElementById('scoreboard').innerHTML = '';
+      document.getElementById('bot-fields').style.display = 'none';
+      document.getElementById('result-animation').style.display = 'none';
+      document.getElementById('foulModal').style.display = 'none';
+
+      // Убираем подсветку
+      document.querySelectorAll('.field').forEach(f => {
+        f.classList.remove('valid');
+        f.classList.remove('invalid');
+      });
+    }
+
+    function renderHand() {
+      const handDiv = document.getElementById('player-hand');
+      handDiv.innerHTML = '';
+      playerHand.forEach((card, index) => {
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'card';
+        cardDiv.textContent = `${card.rank}${card.suit}`;
+        cardDiv.dataset.index = index;
+        cardDiv.onclick = () => toggleSelect(index);
+        if (selectedCards.includes(index)) {
+          cardDiv.classList.add('selected');
+        }
+        handDiv.appendChild(cardDiv);
+      });
+    }
+
+    let selectedCards = [];
+
+    function toggleSelect(index) {
+      const i = selectedCards.indexOf(index);
+      if (i >= 0) {
+        selectedCards.splice(i, 1);
+      } else {
+        selectedCards.push(index);
+      }
+      renderHand();
+    }
+
+    function placeCards(field) {
+      if (selectedCards.length === 0) return;
+
+      let expectedCount = field === 'top' ? 3 : 5;
+      const currentCount = fields[field].length;
+      const futureCount = currentCount + selectedCards.length;
+
+      if (futureCount > expectedCount) {
+        alert(`Вы не можете положить столько карт в поле "${field}". Там уже ${currentCount}, можно до ${expectedCount}.`);
+        return;
+      }
+
+      const cardsToAdd = selectedCards.map(i => playerHand[i]);
+      fields[field].push(...cardsToAdd);
+
+      selectedCards.sort((a, b) => b - a).forEach(i => {
+        playerHand.splice(i, 1);
+      });
+
+      selectedCards = [];
+
+      renderField('bottom');
+      renderField('middle');
+      renderField('top');
+
+      renderHand();
+    }
+
+    function isAllFieldsFilled() {
+      return fields.bottom.length === 5 && fields.middle.length === 5 && fields.top.length === 3;
+    }
+
+    function renderField(field) {
+      const div = document.querySelector(`[data-field="${field}"]`);
+      div.innerHTML = '';
+      fields[field].forEach(card => {
+        const c = document.createElement('div');
+        c.className = 'card';
+        c.style.width = 'auto';
+        c.textContent = `${card.rank}${card.suit}`;
+        div.appendChild(c);
+      });
+
+      const expected = field === 'top' ? 3 : 5;
+      if (fields[field].length === expected) {
+        div.classList.add('full');
+      } else {
+        div.classList.remove('full');
+      }
+    }
+
+    const valueMap = {
+      '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7,
+      '8': 8, '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14
+    };
+
+    function getHandStrength(cards) {
+      const sorted = [...cards].sort((a, b) => valueMap[b.rank] - valueMap[a.rank]);
+
+      function isFlush(cards) {
+        const suit = cards[0].suit;
+        return cards.every(c => c.suit === suit);
+      }
+
+      function isStraight(cards) {
+        const values = cards.map(c => valueMap[c.rank]).sort((a, b) => a - b);
+        for (let i = 0; i < values.length - 1; i++) {
+          if (values[i + 1] - values[i] !== 1) return false;
+        }
+        return true;
+      }
+
+      if (isFlush(sorted) && isStraight(sorted)) return 8;
+      if (cards.some(c => cards.filter(x => x.rank === c.rank).length === 4)) return 7;
+      const groups = {};
+      cards.forEach(c => groups[c.rank] = (groups[c.rank] || 0) + 1);
+      const counts = Object.values(groups);
+      if (counts.includes(3) && counts.includes(2)) return 6;
+      if (isFlush(sorted)) return 5;
+      if (isStraight(sorted)) return 4;
+      if (counts.includes(3)) return 3;
+      if (counts.filter(c => c === 2).length === 2) return 2;
+      if (counts.includes(2)) return 1;
+      return 0;
+    }
+
+    function isValidLayout(fields) {
+      if (!fields || !fields.bottom || !fields.middle || !fields.top) return false;
+      const strength = {
+        bottom: getHandStrength(fields.bottom),
+        middle: getHandStrength(fields.middle),
+        top: getHandStrength(fields.top)
+      };
+      return strength.bottom >= strength.middle && strength.middle >= strength.top;
+    }
+
+    function calculateScore(playerFields, botFields) {
+      if (!playerFields || !botFields) return { score: 0, reason: "Ошибка данных" };
+
+      const playerValid = isValidLayout(playerFields);
+      const botValid = isValidLayout(botFields);
+
+      if (!playerValid) {
+        return {
+          score: 0,
+          breakdown: {
+            bottom: 'Проигрыш',
+            middle: 'Проигрыш',
+            top: 'Проигрыш'
+          },
+          combos: {
+            player: { bottom: -1, middle: -1, top: -1 },
+            bot: {
+              bottom: getHandStrength(botFields.bottom),
+              middle: getHandStrength(botFields.middle),
+              top: getHandStrength(botFields.top)
+            }
+          },
+          bonus: 0,
+          foul: true
+        };
+      }
+
+      if (!botValid) {
+        return {
+          score: 3 + 3,
+          breakdown: {
+            bottom: 'Выигрыш',
+            middle: 'Выигрыш',
+            top: 'Выигрыш'
+          },
+          combos: {
+            player: {
+              bottom: getHandStrength(playerFields.bottom),
+              middle: getHandStrength(playerFields.middle),
+              top: getHandStrength(playerFields.top)
+            },
+            bot: { bottom: -1, middle: -1, top: -1 }
+          },
+          bonus: 3,
+          foul: false
+        };
+      }
+
+      const playerStrength = {
+        bottom: getHandStrength(playerFields.bottom),
+        middle: getHandStrength(playerFields.middle),
+        top: getHandStrength(playerFields.top)
+      };
+
+      const botStrength = {
+        bottom: getHandStrength(botFields.bottom),
+        middle: getHandStrength(botFields.middle),
+        top: getHandStrength(botFields.top)
+      };
+
+      let playerPoints = 0;
+      let results = {};
+
+      for (let field of ['bottom', 'middle', 'top']) {
+        if (playerStrength[field] > botStrength[field]) {
+          playerPoints++;
+          results[field] = 'Выигрыш';
+        } else if (playerStrength[field] < botStrength[field]) {
+          results[field] = 'Проигрыш';
+        } else {
+          results[field] = 'Ничья';
+        }
+      }
+
+      let bonus = 0;
+      if (playerPoints === 3) bonus += 3;
+      else if (playerPoints === 2) bonus += 1;
+
+      return {
+        score: playerPoints + bonus,
+        breakdown: results,
+        combos: { player: playerStrength, bot: botStrength },
+        bonus: bonus,
+        foul: false
+      };
+    }
+
+    function arrangeBotHand(hand) {
+      if (!hand || hand.length !== 13) return undefined;
+      const sorted = [...hand].sort((a, b) => valueMap[b.rank] - valueMap[a.rank]);
+      return {
+        bottom: sorted.slice(0, 5),
+        middle: sorted.slice(5, 10),
+        top: sorted.slice(10, 13)
+      };
+    }
+
+    function confirmLayout() {
+      if (!isAllFieldsFilled()) {
+        alert("Заполните все поля!");
+        return;
+      }
+      endGame();
+    }
+
+    function endGame() {
+      if (!window.botHand || !Array.isArray(window.botHand) || window.botHand.length !== 13) {
+        alert("Ошибка: данные бота повреждены.");
+        return;
+      }
+
+      const botFields = arrangeBotHand(window.botHand);
+      if (
+        !botFields ||
+        !botFields.bottom ||
+        !botFields.middle ||
+        !botFields.top ||
+        botFields.bottom.length !== 5 ||
+        botFields.middle.length !== 5 ||
+        botFields.top.length !== 3
+      ) {
+        alert("Ошибка: некорректная раскладка бота.");
+        return;
+      }
+
+      const result = calculateScore(fields, botFields);
+
+      const comboText = {
+        "-1": 'Фол/Невалидно',
+        8: 'Стрит-флеш',
+        7: 'Каре',
+        6: 'Фулл-хаус',
+        5: 'Флеш',
+        4: 'Стрит',
+        3: 'Сет',
+        2: 'Две пары',
+        1: 'Пара',
+        0: 'Старшая карта'
+      };
+
+      let html = `<h3>Результат: ${result.score} очков</h3>`;
+      html += `<p><strong>Бонус:</strong> ${result.bonus}</p>`;
+      html += '<ul>';
+      for (let field of ['bottom', 'middle', 'top']) {
+        html += `<li><strong>${field}</strong>: ${result.breakdown[field]} | Вы: ${comboText[result.combos.player[field]]}, Бот: ${comboText[result.combos.bot[field]]}</li>`;
+      }
+      html += '</ul>';
+
+      document.getElementById('scoreboard').innerHTML = html;
+
+      // Отображаем поля бота
+      document.getElementById('bot-fields').style.display = 'block';
+      document.getElementById('bot-bottom').innerHTML = '';
+      document.getElementById('bot-middle').innerHTML = '';
+      document.getElementById('bot-top').innerHTML = '';
+
+      renderBotField(botFields.bottom, 'bot-bottom');
+      renderBotField(botFields.middle, 'bot-middle');
+      renderBotField(botFields.top, 'bot-top');
+
+      // Подсветка полей игрока
+      const fieldNames = ['bottom', 'middle', 'top'];
+      const strength = {
+        bottom: getHandStrength(fields.bottom),
+        middle: getHandStrength(fields.middle),
+        top: getHandStrength(fields.top)
+      };
+
+      // Проверка валидности всей раскладки
+      const layoutValid = strength.bottom >= strength.middle && strength.middle >= strength.top;
+
+      for (const field of fieldNames) {
+        const el = document.querySelector(`[data-field="${field}"]`);
+        if (layoutValid) {
+          el.classList.add('valid');
+          el.classList.remove('invalid');
+        } else {
+          el.classList.add('invalid');
+          el.classList.remove('valid');
+        }
+      }
+
+      // Анимация результата
+      const animDiv = document.getElementById('result-animation');
+      animDiv.style.display = 'block';
+
+      if (result.foul) {
+        animDiv.className = 'game-result lose';
+        animDiv.textContent = '❌ Фол! Все поля проиграны.';
+        showFoulModal();
+      } else if (result.score > 3) {
+        animDiv.className = 'game-result win';
+        animDiv.textContent = '🎉 Победа!';
+      } else if (result.score === 0) {
+        animDiv.className = 'game-result lose';
+        animDiv.textContent = '😢 Вы проиграли...';
+      } else {
+        animDiv.className = 'game-result draw';
+        animDiv.textContent = '🤝 Ничья';
+      }
+    }
+
+    function renderBotField(cards, containerId) {
+      const container = document.getElementById(containerId);
+      cards.forEach(card => {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.style.width = 'auto';
+        div.textContent = `${card.rank}${card.suit}`;
+        container.appendChild(div);
+      });
+    }
+
+    function showFoulModal() {
+      document.getElementById('foulModal').style.display = 'block';
+    }
+
+    function closeFoulModal() {
+      document.getElementById('foulModal').style.display = 'none';
+    }
+
+    // Закрытие модального окна по клику вне его
+    window.onclick = function(event) {
+      const modal = document.getElementById('foulModal');
+      if (event.target === modal) {
+        modal.style.display = 'none';
+      }
+    }
+  </script>
+</body>
+</html>
