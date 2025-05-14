@@ -1,1 +1,485 @@
-wwww
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Китайский покер для троих</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .player-area {
+            border: 2px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+        .player-name {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        .hand-section {
+            margin-bottom: 15px;
+        }
+        .section-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .cards {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            min-height: 60px;
+            padding: 5px;
+            background-color: #eee;
+            border-radius: 5px;
+        }
+        .card {
+            width: 40px;
+            height: 60px;
+            background-color: white;
+            border: 1px solid #999;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            cursor: pointer;
+            user-select: none;
+        }
+        .card.hearts, .card.diamonds {
+            color: red;
+        }
+        .card.clubs, .card.spades {
+            color: black;
+        }
+        .controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .registration {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        input {
+            padding: 8px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .scores {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .score-item {
+            text-align: center;
+        }
+        .drag-over {
+            background-color: #d4edda;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Китайский покер для троих</h1>
+        
+        <div class="registration" id="registration">
+            <input type="text" id="playerName" placeholder="Ваше имя">
+            <button id="registerBtn">Присоединиться</button>
+        </div>
+        
+        <div class="scores" id="scores" style="display: none;">
+            <div class="score-item" id="player1Score">Игрок 1: 0</div>
+            <div class="score-item" id="player2Score">Игрок 2: 0</div>
+            <div class="score-item" id="player3Score">Игрок 3: 0</div>
+        </div>
+        
+        <div class="controls" id="controls" style="display: none;">
+            <button id="startGameBtn" disabled>Начать игру</button>
+            <button id="arrangeBtn" disabled>Завершить раскладку</button>
+        </div>
+        
+        <div class="game-area" id="gameArea" style="display: none;">
+            <div class="player-area" id="player1Area">
+                <div class="player-name" id="player1Name">Игрок 1</div>
+                <div class="hand-section">
+                    <div class="section-title">Передняя рука (3 карты)</div>
+                    <div class="cards front" id="player1Front"></div>
+                </div>
+                <div class="hand-section">
+                    <div class="section-title">Средняя рука (5 карт)</div>
+                    <div class="cards middle" id="player1Middle"></div>
+                </div>
+                <div class="hand-section">
+                    <div class="section-title">Задняя рука (5 карт)</div>
+                    <div class="cards back" id="player1Back"></div>
+                </div>
+                <div class="hand-section">
+                    <div class="section-title">Оставшиеся карты</div>
+                    <div class="cards remaining" id="player1Remaining"></div>
+                </div>
+            </div>
+            
+            <div class="player-area" id="player2Area">
+                <div class="player-name" id="player2Name">Игрок 2</div>
+                <div class="hand-section">
+                    <div class="section-title">Передняя рука (3 карты)</div>
+                    <div class="cards front" id="player2Front"></div>
+                </div>
+                <div class="hand-section">
+                    <div class="section-title">Средняя рука (5 карт)</div>
+                    <div class="cards middle" id="player2Middle"></div>
+                </div>
+                <div class="hand-section">
+                    <div class="section-title">Задняя рука (5 карт)</div>
+                    <div class="cards back" id="player2Back"></div>
+                </div>
+                <div class="hand-section">
+                    <div class="section-title">Оставшиеся карты</div>
+                    <div class="cards remaining" id="player2Remaining"></div>
+                </div>
+            </div>
+            
+            <div class="player-area" id="player3Area">
+                <div class="player-name" id="player3Name">Игрок 3</div>
+                <div class="hand-section">
+                    <div class="section-title">Передняя рука (3 карты)</div>
+                    <div class="cards front" id="player3Front"></div>
+                </div>
+                <div class="hand-section">
+                    <div class="section-title">Средняя рука (5 карт)</div>
+                    <div class="cards middle" id="player3Middle"></div>
+                </div>
+                <div class="hand-section">
+                    <div class="section-title">Задняя рука (5 карт)</div>
+                    <div class="cards back" id="player3Back"></div>
+                </div>
+                <div class="hand-section">
+                    <div class="section-title">Оставшиеся карты</div>
+                    <div class="cards remaining" id="player3Remaining"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let playerId = null;
+        let playerName = '';
+        let ws = null;
+        let draggedCard = null;
+        let draggedFrom = null;
+
+        // Подключение к WebSocket
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.host;
+            ws = new WebSocket(`${protocol}//${host}`);
+            
+            ws.onopen = () => {
+                console.log('Подключено к серверу');
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                console.log('Получено сообщение:', data);
+                
+                switch (data.type) {
+                    case 'registered':
+                        handleRegistered(data);
+                        break;
+                    case 'game-state':
+                        updateGameState(data.state);
+                        break;
+                    default:
+                        console.log('Неизвестный тип сообщения:', data.type);
+                }
+            };
+            
+            ws.onclose = () => {
+                console.log('Соединение закрыто');
+                setTimeout(connectWebSocket, 1000);
+            };
+            
+            ws.onerror = (error) => {
+                console.error('Ошибка WebSocket:', error);
+            };
+        }
+        
+        // Обработка успешной регистрации
+        function handleRegistered(data) {
+            playerId = data.playerId;
+            playerName = document.getElementById('playerName').value || `Игрок ${playerId.split('_')[1]}`;
+            
+            document.getElementById('registration').style.display = 'none';
+            document.getElementById('gameArea').style.display = 'block';
+            document.getElementById('scores').style.display = 'flex';
+            document.getElementById('controls').style.display = 'block';
+            
+            // Обновляем имена игроков
+            updatePlayerNames(data.players);
+        }
+        
+        // Обновление имен игроков
+        function updatePlayerNames(players) {
+            for (let i = 0; i < players.length; i++) {
+                const playerElement = document.getElementById(`player${i+1}Name`);
+                if (playerElement) {
+                    playerElement.textContent = players[i];
+                }
+            }
+        }
+        
+        // Обновление состояния игры
+        function updateGameState(state) {
+            // Обновляем счет
+            if (state.scores) {
+                for (let [id, score] of Object.entries(state.scores)) {
+                    const playerNum = id.split('_')[1];
+                    const scoreElement = document.getElementById(`player${playerNum}Score`);
+                    if (scoreElement) {
+                        scoreElement.textContent = `${state.players[id].name}: ${score}`;
+                    }
+                }
+            }
+            
+            // Обновляем карты игроков
+            if (state.hands) {
+                for (let [id, hand] of Object.entries(state.hands)) {
+                    const playerNum = id.split('_')[1];
+                    
+                    // Обновляем только свои карты (для других игроков показываем только количество)
+                    if (id === playerId) {
+                        updateHand(`player${playerNum}Front`, hand.front);
+                        updateHand(`player${playerNum}Middle`, hand.middle);
+                        updateHand(`player${playerNum}Back`, hand.back);
+                        updateHand(`player${playerNum}Remaining`, hand.remaining);
+                    } else {
+                        updateHandCount(`player${playerNum}Front`, hand.front.length);
+                        updateHandCount(`player${playerNum}Middle`, hand.middle.length);
+                        updateHandCount(`player${playerNum}Back`, hand.back.length);
+                        updateHandCount(`player${playerNum}Remaining`, hand.remaining.length);
+                    }
+                }
+            }
+            
+            // Обновляем кнопки управления
+            const startGameBtn = document.getElementById('startGameBtn');
+            const arrangeBtn = document.getElementById('arrangeBtn');
+            
+            if (state.gameStarted) {
+                startGameBtn.disabled = true;
+                
+                // Проверяем, все ли карты разложены
+                const myHand = state.hands[playerId];
+                const allCardsArranged = myHand && 
+                    myHand.front.length === 3 && 
+                    myHand.middle.length === 5 && 
+                    myHand.back.length === 5;
+                
+                arrangeBtn.disabled = !allCardsArranged;
+            } else {
+                startGameBtn.disabled = Object.keys(state.players).length !== 3 || state.gameStarted;
+                arrangeBtn.disabled = true;
+            }
+        }
+        
+        // Обновление рук с картами
+        function updateHand(elementId, cards) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            
+            element.innerHTML = '';
+            
+            cards.forEach(card => {
+                const cardElement = document.createElement('div');
+                cardElement.className = `card ${card.suit}`;
+                cardElement.textContent = `${card.rank}`;
+                cardElement.dataset.rank = card.rank;
+                cardElement.dataset.suit = card.suit;
+                
+                // Добавляем обработчики drag and drop только для своих карт
+                if (elementId.includes(playerId.replace('_', ''))) {
+                    cardElement.draggable = true;
+                    cardElement.addEventListener('dragstart', handleDragStart);
+                }
+                
+                element.appendChild(cardElement);
+            });
+            
+            // Добавляем обработчики drop для своих зон
+            if (elementId.includes(playerId.replace('_', ''))) {
+                element.addEventListener('dragover', handleDragOver);
+                element.addEventListener('dragleave', handleDragLeave);
+                element.addEventListener('drop', handleDrop);
+                element.addEventListener('dragenter', handleDragEnter);
+            }
+        }
+        
+        // Обновление счетчиков карт для других игроков
+        function updateHandCount(elementId, count) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+            
+            element.innerHTML = '';
+            
+            const countElement = document.createElement('div');
+            countElement.textContent = `${count} карт`;
+            element.appendChild(countElement);
+        }
+        
+        // Обработчики drag and drop
+        function handleDragStart(e) {
+            draggedCard = {
+                rank: e.target.dataset.rank,
+                suit: e.target.dataset.suit
+            };
+            
+            // Определяем, откуда перетаскиваем
+            const parentId = e.target.parentElement.id;
+            if (parentId.includes('Front')) draggedFrom = 'front';
+            else if (parentId.includes('Middle')) draggedFrom = 'middle';
+            else if (parentId.includes('Back')) draggedFrom = 'back';
+            else if (parentId.includes('Remaining')) draggedFrom = 'remaining';
+            
+            e.dataTransfer.setData('text/plain', '');
+            e.target.style.opacity = '0.4';
+        }
+        
+        function handleDragOver(e) {
+            e.preventDefault();
+        }
+        
+        function handleDragEnter(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+        
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+        
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            
+            // Определяем, куда перемещаем
+            const parentId = e.currentTarget.id;
+            let to = '';
+            if (parentId.includes('Front')) to = 'front';
+            else if (parentId.includes('Middle')) to = 'middle';
+            else if (parentId.includes('Back')) to = 'back';
+            else if (parentId.includes('Remaining')) to = 'remaining';
+            
+            // Проверяем ограничения на количество карт
+            const currentCount = e.currentTarget.children.length;
+            if ((to === 'front' && currentCount >= 3) || 
+                ((to === 'middle' || to === 'back') && currentCount >= 5)) {
+                alert(`В эту зону нельзя добавить больше карт!`);
+                return;
+            }
+            
+            // Отправляем сообщение на сервер о перемещении карты
+            if (draggedCard && draggedFrom && to) {
+                ws.send(JSON.stringify({
+                    type: 'move-card',
+                    playerId,
+                    card: draggedCard,
+                    from: draggedFrom,
+                    to
+                }));
+            }
+            
+            draggedCard = null;
+            draggedFrom = null;
+        }
+        
+        // Обработчики кнопок
+        document.getElementById('registerBtn').addEventListener('click', () => {
+            const name = document.getElementById('playerName').value.trim();
+            if (name) {
+                ws.send(JSON.stringify({
+                    type: 'register',
+                    name
+                }));
+            } else {
+                alert('Пожалуйста, введите ваше имя');
+            }
+        });
+        
+        document.getElementById('startGameBtn').addEventListener('click', () => {
+            ws.send(JSON.stringify({
+                type: 'start-game'
+            }));
+        });
+        
+        document.getElementById('arrangeBtn').addEventListener('click', () => {
+            const front = Array.from(document.getElementById(`${playerId.replace('_', '')}Front`).children)
+                .map(card => ({
+                    rank: card.dataset.rank,
+                    suit: card.dataset.suit
+                }));
+            
+            const middle = Array.from(document.getElementById(`${playerId.replace('_', '')}Middle`).children)
+                .map(card => ({
+                    rank: card.dataset.rank,
+                    suit: card.dataset.suit
+                }));
+            
+            const back = Array.from(document.getElementById(`${playerId.replace('_', '')}Back`).children)
+                .map(card => ({
+                    rank: card.dataset.rank,
+                    suit: card.dataset.suit
+                }));
+            
+            ws.send(JSON.stringify({
+                type: 'arrange-cards',
+                playerId,
+                front,
+                middle,
+                back
+            }));
+        });
+        
+        // Инициализация
+        connectWebSocket();
+    </script>
+</body>
+</html>
