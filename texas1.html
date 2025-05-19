@@ -1,3 +1,331 @@
+const express = require('express');
+const WebSocket = require('ws');
+const path = require('path');
+
+const app = express();
+const PORT = 3000;
+
+// Serve static files
+app.use(express.static(path.join(__dirname, 'public')));
+
+// HTTP server
+const server = app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+
+// WebSocket server
+const wss = new WebSocket.Server({ server });
+
+const gameState = {
+  players: {},
+  waitingPlayer: null,
+  deck: [],
+  currentPlayer: null,
+  gameStarted: false
+};
+
+// Initialize a standard deck of 52 cards
+function initializeDeck() {
+  const suits = ['♠', '♥', '♦', '♣'];
+  const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+  const deck = [];
+  
+  for (const suit of suits) {
+    for (const rank of ranks) {
+      deck.push({ suit, rank });
+    }
+  }
+  
+  return shuffleDeck(deck);
+}
+
+// Fisher-Yates shuffle algorithm
+function shuffleDeck(deck) {
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  return deck;
+}
+
+wss.on('connection', (ws) => {
+  console.log('New client connected');
+  
+  ws.on('message', (message) => {
+    const data = JSON.parse(message);
+    
+    switch (data.type) {
+      case 'register':
+        handleRegistration(ws, data);
+        break;
+      case 'placeCard':
+        handleCardPlacement(ws, data);
+        break;
+      case 'ready':
+        handleReady(ws);
+        break;
+    }
+  });
+  
+  ws.on('close', () => {
+    console.log('Client disconnected');
+    // Clean up player data
+    for (const playerId in gameState.players) {
+      if (gameState.players[playerId].ws === ws) {
+        delete gameState.players[playerId];
+        if (gameState.waitingPlayer === playerId) {
+          gameState.waitingPlayer = null;
+        }
+        break;
+      }
+    }
+  });
+});
+
+function handleRegistration(ws, data) {
+  const playerId = generatePlayerId();
+  gameState.players[playerId] = {
+    ws,
+    name: data.name || `Player ${playerId}`,
+    hand: [],
+    board: {
+      top: Array(3).fill(null),
+      middle: Array(5).fill(null),
+      bottom: Array(5).fill(null)
+    },
+    ready: false
+  };
+  
+  ws.send(JSON.stringify({
+    type: 'registered',
+    playerId
+  }));
+  
+  // Try to start a game if there are two players
+  tryStartGame();
+}
+
+function generatePlayerId() {
+  return Math.random().toString(36).substr(2, 9);
+}
+
+function tryStartGame() {
+  const playerIds = Object.keys(gameState.players);
+  
+  if (playerIds.length === 2 && playerIds.every(id => gameState.players[id].ready)) {
+    startGame();
+  }
+}
+
+function startGame() {
+  gameState.gameStarted = true;
+  gameState.deck = initializeDeck();
+  
+  // Deal initial cards (5 cards to each player)
+  const playerIds = Object.keys(gameState.players);
+  
+  playerIds.forEach(playerId => {
+    gameState.players[playerId].hand = gameState.deck.splice(0, 5);
+  });
+  
+  // Randomly select starting player
+  gameState.currentPlayer = playerIds[Math.floor(Math.random() * playerIds.length)];
+  
+  // Notify players
+  broadcastGameState();
+}
+
+function handleCardPlacement(ws, data) {
+  if (!gameState.gameStarted) return;
+  
+  const playerId = data.playerId;
+  if (playerId !== gameState.currentPlayer) return;
+  
+  const player = gameState.players[playerId];
+  const { cardIndex, row, position } = data;
+  
+  // Validate the move
+  if (cardIndex < 0 || cardIndex >= player.hand.length) return;
+  if (!['top', 'middle', 'bottom'].includes(row)) return;
+  
+  const card = player.hand[cardIndex];
+  
+  // Check if position is valid
+  const rowArray = player.board[row];
+  if (row === 'top' && position >= 3) return;
+  if (row !== 'top' && position >= 5) return;
+  
+  // Place the card
+  if (rowArray[position] === null) {
+    rowArray[position] = card;
+    player.hand.splice(cardIndex, 1);
+    
+    // Draw new card if available
+    if (gameState.deck.length > 0) {
+      player.hand.push(gameState.deck.pop());
+    }
+    
+    // Switch turns
+    gameState.currentPlayer = Object.keys(gameState.players).find(id => id !== playerId);
+    
+    // Check if game is over
+    checkGameEnd();
+    
+    // Update all players
+    broadcastGameState();
+  }
+}
+
+function handleReady(ws) {
+  for (const playerId in gameState.players) {
+    if (gameState.players[playerId].ws === ws) {
+      gameState.players[playerId].ready = true;
+      break;
+    }
+  }
+  
+  tryStartGame();
+}
+
+function checkGameEnd() {
+  const playerIds = Object.keys(gameState.players);
+  const gameOver = playerIds.every(playerId => {
+    const player = gameState.players[playerId];
+    return player.board.top.every(card => card !== null) &&
+           player.board.middle.every(card => card !== null) &&
+           player.board.bottom.every(card => card !== null);
+  });
+  
+  if (gameOver) {
+    // Calculate scores
+    playerIds.forEach(playerId => {
+      gameState.players[playerId].score = calculateScore(gameState.players[playerId].board);
+    });
+    
+    // Announce winner
+    broadcastGameState();
+    
+    // Reset game after a delay
+    setTimeout(() => {
+      resetGame();
+    }, 5000);
+  }
+}
+
+function calculateScore(board) {
+  // Simple scoring for demo purposes
+  let score = 0;
+  
+  // Check top row (3 cards, should be lowest)
+  const topValues = board.top.map(card => card ? getCardValue(card.rank) : 0);
+  if (topValues.every(val => val > 0)) {
+    if (isSet(topValues)) score += 10;
+  }
+  
+  // Check middle row (5 cards)
+  const middleValues = board.middle.map(card => card ? getCardValue(card.rank) : 0);
+  if (middleValues.every(val => val > 0)) {
+    if (isStraight(middleValues)) score += 20;
+    if (isFlush(board.middle)) score += 20;
+  }
+  
+  // Check bottom row (5 cards, should be highest)
+  const bottomValues = board.bottom.map(card => card ? getCardValue(card.rank) : 0);
+  if (bottomValues.every(val => val > 0)) {
+    if (isStraight(bottomValues)) score += 30;
+    if (isFlush(board.bottom)) score += 30;
+    if (isFullHouse(bottomValues)) score += 40;
+  }
+  
+  return score;
+}
+
+function getCardValue(rank) {
+  const values = {
+    '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, 
+    '9': 9, '10': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14
+  };
+  return values[rank] || 0;
+}
+
+function isSet(values) {
+  return new Set(values).size === 1;
+}
+
+function isStraight(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i] !== sorted[i - 1] + 1) return false;
+  }
+  return true;
+}
+
+function isFlush(cards) {
+  return new Set(cards.map(card => card.suit)).size === 1;
+}
+
+function isFullHouse(values) {
+  const counts = {};
+  values.forEach(v => {
+    counts[v] = (counts[v] || 0) + 1;
+  });
+  const countsArr = Object.values(counts);
+  return countsArr.includes(3) && countsArr.includes(2);
+}
+
+function resetGame() {
+  const playerIds = Object.keys(gameState.players);
+  
+  playerIds.forEach(playerId => {
+    gameState.players[playerId].hand = [];
+    gameState.players[playerId].board = {
+      top: Array(3).fill(null),
+      middle: Array(5).fill(null),
+      bottom: Array(5).fill(null)
+    };
+    gameState.players[playerId].ready = false;
+    gameState.players[playerId].score = null;
+  });
+  
+  gameState.deck = [];
+  gameState.currentPlayer = null;
+  gameState.gameStarted = false;
+  
+  broadcastGameState();
+}
+
+function broadcastGameState() {
+  const playerIds = Object.keys(gameState.players);
+  
+  playerIds.forEach(playerId => {
+    const player = gameState.players[playerId];
+    const opponentId = playerIds.find(id => id !== playerId);
+    const opponent = opponentId ? gameState.players[opponentId] : null;
+    
+    const gameData = {
+      type: 'gameState',
+      player: {
+        id: playerId,
+        hand: player.hand,
+        board: player.board,
+        score: player.score
+      },
+      opponent: opponent ? {
+        id: opponentId,
+        board: opponent.board,
+        score: opponent.score
+      } : null,
+      currentPlayer: gameState.currentPlayer,
+      gameStarted: gameState.gameStarted,
+      cardsRemaining: gameState.deck.length
+    };
+    
+    player.ws.send(JSON.stringify(gameData));
+  });
+}
+
+
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
