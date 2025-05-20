@@ -1,3 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pineapple OFC Poker</title>
+  <style>
+    :root {
+      --card-width: 70px;
+      --card-height: 100px;
+      --red-suit: #e74c3c;
+      --black-suit: #2c3e50;
+      --primary: #27ae60;
+      --secondary: #2ecc71;
+      --dark-bg: #1a6b1a;
+      --light-bg: #0d4d0d;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Arial', sans-serif;
+      background-color: var(--dark-bg);
+      color: white;
+      line-height: 1.6;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: white;
+    }
+
+    /* Lobby styles */
+    .lobby {
+      background-color: var(--light-bg);
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .player-list {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin: 15px 0;
+    }
+
+    .player-badge {
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 10px 15px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .player-badge.ready::after {
+      content: '✓';
+      color: #2ecc71;
+    }
+
+    /* Game board styles */
+    .game-area {
+      display: none;
+    }
+
+    .player-area {
+      background-color: var(--light-bg);
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .board {
+      margin: 15px 0;
+    }
+
+    .board-row {
+      display: flex;
+      justify-content: center;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+
+    .board-slot {
+      width: var(--card-width);
+      height: var(--card-height);
+      border: 2px dashed rgba(255, 255, 255, 0.3);
+      border-radius: 5px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: all 0.2s;
+    }
+
+    .board-slot.highlight {
+      background-color: rgba(255, 255, 0, 0.2);
+      border-color: yellow;
+      cursor: pointer;
+    }
+
+    /* Card styles */
+    .card {
+      width: var(--card-width);
+      height: var(--card-height);
+      background-color: white;
+      border-radius: 5px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 5px;
+      font-weight: bold;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .card.red {
+      color: var(--red-suit);
+    }
+
+    .card.black {
+      color: var(--black-suit);
+    }
+
+    .card.selected {
+      transform: translateY(-10px);
+      box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .card-value {
+      font-size: 1.2rem;
+    }
+
+    .card-suit {
+      font-size: 1.5rem;
+      text-align: center;
+    }
+
+    /* Hand area */
+    .hand {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0;
+      min-height: var(--card-height);
+    }
+
+    /* Status area */
+    .status {
+      text-align: center;
+      padding: 10px;
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: 5px;
+      margin: 10px 0;
+      font-weight: bold;
+    }
+
+    .score {
+      font-size: 1.2rem;
+      text-align: center;
+      margin: 10px 0;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      background-color: var(--primary);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background-color: var(--secondary);
+    }
+
+    button:disabled {
+      background-color: #7f8c8d;
+      cursor: not-allowed;
+    }
+
+    input {
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      min-width: 200px;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      :root {
+        --card-width: 50px;
+        --card-height: 75px;
+      }
+
+      .card-value {
+        font-size: 0.9rem;
+      }
+
+      .card-suit {
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Pineapple OFC Poker</h1>
+    
+    <!-- Lobby Section -->
+    <div class="lobby" id="lobby">
+      <h2>Game Lobby</h2>
+      <div class="player-list" id="playerList">
+        <!-- Players will appear here -->
+      </div>
+      <div class="controls">
+        <input type="text" id="playerName" placeholder="Your name" maxlength="15">
+        <button id="joinBtn">Join Game</button>
+        <button id="readyBtn" disabled>Ready</button>
+      </div>
+    </div>
+    
+    <!-- Game Area (hidden initially) -->
+    <div class="game-area" id="gameArea">
+      <!-- Opponent Board -->
+      <div class="player-area">
+        <h2 id="opponentName">Opponent</h2>
+        <div class="score" id="opponentScore"></div>
+        <div class="board" id="opponentBoard">
+          <div class="board-row" data-row="top">
+            <div class="board-slot" data-pos="0"></div>
+            <div class="board-slot" data-pos="1"></div>
+            <div class="board-slot" data-pos="2"></div>
+          </div>
+          <div class="board-row" data-row="middle">
+            <div class="board-slot" data-pos="0"></div>
+            <div class="board-slot" data-pos="1"></div>
+            <div class="board-slot" data-pos="2"></div>
+            <div class="board-slot" data-pos="3"></div>
+            <div class="board-slot" data-pos="4"></div>
+          </div>
+          <div class="board-row" data-row="bottom">
+            <div class="board-slot" data-pos="0"></div>
+            <div class="board-slot" data-pos="1"></div>
+            <div class="board-slot" data-pos="2"></div>
+            <div class="board-slot" data-pos="3"></div>
+            <div class="board-slot" data-pos="4"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Current Player Board -->
+      <div class="player-area">
+        <h2 id="playerNameDisplay">You</h2>
+        <div class="score" id="playerScore"></div>
+        <div class="board" id="playerBoard">
+          <div class="board-row" data-row="top">
+            <div class="board-slot" data-pos="0"></div>
+            <div class="board-slot" data-pos="1"></div>
+            <div class="board-slot" data-pos="2"></div>
+          </div>
+          <div class="board-row" data-row="middle">
+            <div class="board-slot" data-pos="0"></div>
+            <div class="board-slot" data-pos="1"></div>
+            <div class="board-slot" data-pos="2"></div>
+            <div class="board-slot" data-pos="3"></div>
+            <div class="board-slot" data-pos="4"></div>
+          </div>
+          <div class="board-row" data-row="bottom">
+            <div class="board-slot" data-pos="0"></div>
+            <div class="board-slot" data-pos="1"></div>
+            <div class="board-slot" data-pos="2"></div>
+            <div class="board-slot" data-pos="3"></div>
+            <div class="board-slot" data-pos="4"></div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Current Player Hand -->
+      <div class="player-area">
+        <h2>Your Hand</h2>
+        <div class="status" id="gameStatus">Waiting for opponent...</div>
+        <div class="hand" id="playerHand">
+          <!-- Cards will appear here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // DOM Elements
+    const lobbyEl = document.getElementById('lobby');
+    const gameAreaEl = document.getElementById('gameArea');
+    const playerListEl = document.getElementById('playerList');
+    const joinBtn = document.getElementById('joinBtn');
+    const readyBtn = document.getElementById('readyBtn');
+    const playerNameInput = document.getElementById('playerName');
+    const playerNameDisplay = document.getElementById('playerNameDisplay');
+    const opponentNameEl = document.getElementById('opponentName');
+    const playerScoreEl = document.getElementById('playerScore');
+    const opponentScoreEl = document.getElementById('opponentScore');
+    const gameStatusEl = document.getElementById('gameStatus');
+    const playerHandEl = document.getElementById('playerHand');
+    const playerBoardEl = document.getElementById('playerBoard');
+    const opponentBoardEl = document.getElementById('opponentBoard');
+
+    // Game state
+    let playerId = null;
+    let selectedCard = null;
+    let ws = null;
+
+    // Initialize WebSocket
+    function connectWebSocket() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      ws = new WebSocket(`${protocol}//${host}`);
+
+      ws.onopen = () => {
+        console.log('Connected to server');
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        console.log('Received:', data);
+        handleMessage(data);
+      };
+
+      ws.onclose = () => {
+        console.log('Disconnected from server');
+        alert('Connection lost. Please refresh the page.');
+      };
+    }
+
+    // Message handler
+    function handleMessage(data) {
+      switch (data.type) {
+        case 'lobby':
+          updateLobby(data);
+          break;
+        case 'joined':
+          handleJoined(data);
+          break;
+        case 'gameState':
+          updateGameState(data);
+          break;
+        case 'error':
+          alert(data.message);
+          break;
+      }
+    }
+
+    // Lobby functions
+    function updateLobby(data) {
+      playerListEl.innerHTML = '';
+      data.players.forEach(player => {
+        const playerEl = document.createElement('div');
+        playerEl.className = `player-badge ${player.ready ? 'ready' : ''}`;
+        playerEl.textContent = player.name;
+        playerListEl.appendChild(playerEl);
+      });
+
+      readyBtn.disabled = !playerId || data.players.length < 1;
+    }
+
+    function handleJoined(data) {
+      playerId = data.playerId;
+      playerNameDisplay.textContent = playerNameInput.value || 'You';
+      joinBtn.disabled = true;
+      readyBtn.disabled = false;
+    }
+
+    // Game state functions
+    function updateGameState(data) {
+      // Show game area if we were in lobby
+      if (data.phase !== 'waiting') {
+        lobbyEl.style.display = 'none';
+        gameAreaEl.style.display = 'block';
+      }
+
+      // Update player hand
+      playerHandEl.innerHTML = '';
+      if (data.player.hand) {
+        data.player.hand.forEach(card => {
+          if (card) {
+            const cardEl = createCardElement(card);
+            playerHandEl.appendChild(cardEl);
+          }
+        });
+      }
+
+      // Update boards
+      updateBoard(data.player.board, playerBoardEl, true);
+      if (data.opponent) {
+        opponentNameEl.textContent = data.opponent.name || 'Opponent';
+        updateBoard(data.opponent.board, opponentBoardEl, false);
+        opponentScoreEl.textContent = data.opponent.score !== null ? `Score: ${data.opponent.score}` : '';
+      }
+
+      // Update scores
+      playerScoreEl.textContent = data.player.score !== null ? `Score: ${data.player.score}` : '';
+
+      // Update game status
+      updateGameStatus(data);
+    }
+
+    function updateBoard(board, boardEl, isInteractive) {
+      for (const row of ['top', 'middle', 'bottom']) {
+        const rowEl = boardEl.querySelector(`[data-row="${row}"]`);
+        const slots = rowEl.querySelectorAll('.board-slot');
+        
+        board[row].forEach((card, index) => {
+          const slot = slots[index];
+          slot.innerHTML = '';
+          
+          if (card) {
+            const cardEl = createCardElement(card);
+            slot.appendChild(cardEl);
+          }
+          
+          // Highlight available slots if interactive and player's turn
+          if (isInteractive && 
+              !card && 
+              selectedCard !== null &&
+              boardEl === playerBoardEl) {
+            slot.classList.add('highlight');
+            slot.onclick = () => placeCard(row, index);
+          } else {
+            slot.classList.remove('highlight');
+            slot.onclick = null;
+          }
+        });
+      }
+    }
+
+    function updateGameStatus(data) {
+      let statusText = '';
+      
+      switch (data.phase) {
+        case 'waiting':
+          statusText = 'Waiting for players...';
+          break;
+        case 'dealing':
+          statusText = 'Dealing cards...';
+          break;
+        case 'playing':
+          statusText = data.currentPlayer === playerId 
+            ? 'Your turn - Select a card and place it' 
+            : 'Waiting for opponent...';
+          break;
+        case 'scoring':
+          statusText = 'Round over! Calculating scores...';
+          break;
+      }
+      
+      gameStatusEl.textContent = statusText;
+    }
+
+    // Card functions
+    function createCardElement(card) {
+      if (!card) return null;
+      
+      const cardEl = document.createElement('div');
+      cardEl.className = `card ${['♥', '♦'].includes(card.suit) ? 'red' : 'black'}`;
+      cardEl.dataset.id = card.id;
+      cardEl.innerHTML = `
+        <div class="card-value">${card.rank}</div>
+        <div class="card-suit">${card.suit}</div>
+      `;
+      
+      cardEl.addEventListener('click', () => selectCard(cardEl, card.id));
+      return cardEl;
+    }
+
+    function selectCard(cardEl, cardId) {
+      // Deselect if clicking the same card
+      if (selectedCard === cardId) {
+        cardEl.classList.remove('selected');
+        selectedCard = null;
+        clearHighlights();
+        return;
+      }
+      
+      // Deselect previous selection
+      if (selectedCard) {
+        const prevSelected = playerHandEl.querySelector(`.card[data-id="${selectedCard}"]`);
+        if (prevSelected) prevSelected.classList.remove('selected');
+      }
+      
+      // Select new card
+      cardEl.classList.add('selected');
+      selectedCard = cardId;
+      
+      // Highlight valid placement slots
+      highlightValidSlots();
+    }
+
+    function highlightValidSlots() {
+      if (!selectedCard) return;
+      
+      const slots = playerBoardEl.querySelectorAll('.board-slot:empty');
+      slots.forEach(slot => {
+        slot.classList.add('highlight');
+        const row = slot.closest('.board-row').dataset.row;
+        const pos = parseInt(slot.dataset.pos);
+        slot.onclick = () => placeCard(row, pos);
+      });
+    }
+
+    function clearHighlights() {
+      const slots = playerBoardEl.querySelectorAll('.board-slot');
+      slots.forEach(slot => {
+        slot.classList.remove('highlight');
+        slot.onclick = null;
+      });
+    }
+
+    function placeCard(row, position) {
+      if (!selectedCard) return;
+      
+      ws.send(JSON.stringify({
+        action: 'placeCard',
+        cardId: selectedCard,
+        row,
+        position
+      }));
+      
+      selectedCard = null;
+      clearHighlights();
+    }
+
+    // Event listeners
+    joinBtn.addEventListener('click', () => {
+      const name = playerNameInput.value.trim() || `Player${Math.floor(Math.random() * 1000)}`;
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        connectWebSocket();
+      }
+      
+      ws.send(JSON.stringify({
+        action: 'join',
+        name
+      }));
+    });
+
+    readyBtn.addEventListener('click', () => {
+      ws.send(JSON.stringify({
+        action: 'ready'
+      }));
+      readyBtn.disabled = true;
+    });
+
+    // Initialize
+    connectWebSocket();
+  </script>
+</body>
+  </html>
 const express = require('express');
 const WebSocket = require('ws');
 const path = require('path');
