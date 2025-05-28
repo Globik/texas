@@ -1,0 +1,126 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ананас Два</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background: #f4f4f4;
+            color: #333;
+        }
+
+        h1 {
+            font-size: 1.5em;
+            padding: 10px;
+        }
+
+        .status {
+            font-size: 1em;
+            margin: 10px;
+            min-height: 24px;
+        }
+
+        .hand, .dropzone {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin: 10px auto;
+        }
+
+        .card {
+            width: 60px;
+            height: 90px;
+            border-radius: 8px;
+            border: 2px solid #aaa;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1em;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            user-select: none;
+            touch-action: none;
+        }
+
+        .dropzone {
+            min-height: 100px;
+            border: 2px dashed #ccc;
+            padding: 10px;
+            border-radius: 10px;
+            background: #fff;
+        }
+
+        .row-title {
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        .btn {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 1em;
+            background-color: #2e86de;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .btn:active {
+            background-color: #1a73e8;
+        }
+
+        .win-line {
+            color: green;
+        }
+
+        .lose-line {
+            color: red;
+        }
+
+        .tie-line {
+            color: gray;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Ананас Два</h1>
+<div class="status" id="status">Ожидание начала игры...</div>
+
+<div class="hand" id="player-hand"></div>
+
+<div class="row">
+    <div class="row-title">Верхняя (3)</div>
+    <div class="dropzone" id="top-hand" ondragover="allowDrop(event)" ondrop="drop(event)"></div>
+</div>
+
+<div class="row">
+    <div class="row-title">Средняя (5)</div>
+    <div class="dropzone" id="middle-hand" ondragover="allowDrop(event)" ondrop="drop(event)"></div>
+</div>
+
+<div class="row">
+    <div class="row-title">Нижняя (5)</div>
+    <div class="dropzone" id="bottom-hand" ondragover="allowDrop(event)" ondrop="drop(event)"></div>
+</div>
+
+<button class="btn" onclick="submitHand()">Подтвердить</button>
+<button class="btn" onclick="resetHand()">Сбросить</button>
+
+<div class="status" id="result-top"></div>
+<div class="status" id="result-middle"></div>
+<div class="status" id="result-bottom"></div>
+<div class="status" id="total-score"></div>
+
+<script src="client2.js"></script>
+</body>
+</html>

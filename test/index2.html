@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Китайский Покер</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #0b3d91; color: white; padding: 20px; }
+        .cards { margin-top: 20px; display: flex; justify-content: center; gap: 10px; }
+        .card { border: 1px solid white; padding: 10px; border-radius: 8px; cursor: pointer; width: 60px; }
+        #pot { margin: 20px 0; display: flex; justify-content: center; gap: 10px; }
+        button { padding: 10px 20px; margin-top: 20px; }
+        .scoreboard { margin-top: 20px; }
+    </style>
+</head>
+<body>
+	<b>Your ID: <span id="yrid"></span></b>
+    <h1>Китайский покер (100 очков)</h1>
+    <p id="status">Ожидание начала игры...</p>
+
+    <div id="pot"></div>
+
+    <div class="cards" id="my-cards"></div>
+    <button onclick="skipTurn()">Пропустить ход</button>
+
+    <div class="scoreboard">
+        <p>Очки: Вы — <span id="score-value">0</span>, Противник — <span id="opponent-score">0</span></p>
+        <p>Победы: Игрок 1 — <span id="wins-1">0</span>, Игрок 2 — <span id="wins-2">0</span></p>
+    </div>
+
+    <script src="client.js"></script>
+</body>
+</html>
