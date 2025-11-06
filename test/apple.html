@@ -427,7 +427,7 @@
       </div>
     </div>
     <button onclick="goready(this);">start a game</button>
-    <output id="gameStatusEl"></output>
+    <output id="out"></output>
     <!-- Game Area (hidden initially) -->
     <div class="game-area" id="gameArea">
       <!-- Opponent Board -->
@@ -537,6 +537,7 @@
   </div>
 
   <script>
+	 // alert(1%2)
     // DOM Elements
     const lobbyEl = document.getElementById('lobby');
     const gameAreaEl = document.getElementById('gameArea');
@@ -592,10 +593,11 @@ function goready(el){
 	g.forEach(function(el, i){
 		el.remove()
 	})
+	/*
 	ws.send(JSON.stringify({
         action: 'join',
         name: 'alik'
-      }));
+      }));*/
       ws.send(JSON.stringify({
         action: 'ready'
       }));
@@ -688,6 +690,7 @@ if (data.phase === 'fantasyDiscard' && data.playerId === playerId) {
 */
     // Lobby functions
     function updateLobby(data) {
+	//	alert(JSON.stringify(data))
       playerListEl.innerHTML = '';
       data.players.forEach(player => {
         const playerEl = document.createElement('div');
@@ -997,12 +1000,14 @@ function deleteData(){
     }
     
   }
-  updateTokenInfo(data)
+ // updateTurnInfo(data)
 }
-function updateTokenInfo(data){
-	if(data.hasFirstPlayerToken){
+function updateTurnInfo(data){
+	if(data.isFirstPlayer){
 	//	alert('u vac fishka next turn')
+	out.innerHTML = "Вы ходите первым в этой игре"
 	}else{
+		out.innerHTML = "оппонент ходит первым в этой игре"
 	//	alert('fishka u oponenta')
 	}
 }

@@ -18,6 +18,7 @@ const game = {
   deck: [],
   currentPlayer: null,
   phase: 'waiting', // waiting -> dealing -> placing -> discarding -> scoring -> fantasyDiscard
+  turn: 0,
   round: 0,
   dealSequence: [5, 5, 3, 3, 3, 3,3,3,3,3],
   currentDealIndex: 0,
@@ -28,9 +29,7 @@ const game = {
     cardsDealt: false,
     nextFantasyCandidate: null
   },
-  gameCount: 0,
-  firstPlayerIndex:0,
-  firstPlayerToken: null
+ // firstPlayerToken: null
 };
 
 
@@ -169,28 +168,27 @@ function handleReady(ws) {
 }
 
 function startGame() {
-	console.log('startGame ygrek');
+	console.log('startGame, suka');
   game.phase = 'dealing';
   game.deck = createDeck();
-  game.round = 0;
+  game.round = game.turn;
   game.currentDealIndex = 0;
   game.discardPhase = false;
-  
+  dealCards();
   game.fantasy = {
     activePlayer: game.fantasy.nextFantasyCandidate,
     cardsDealt: false,
     nextFantasyCandidate: null
   };
-  const playerIds = Object.keys(game.players);
-  game.firstPlayerIndex = game.gameCount % 2;
-  game.currentPlayer = playerIds[game.firstPlayerIndex];
-  console.log('igra fishka ', game.gameCount + 1, 'pervyi hod ', game.players[game.currentPlayer].name);
-  dealCards();
+  //const playerIds = Object.keys(game.players);
+  //game.firstPlayerToken = playerIds[Math.floor(Math.random() * playerIds.length)];
+  //console.log('fishka' ,game.players[game.firstPlayerToken].name);
 }
 
 
 
 function dealCards() {
+	console.log('dealCards');
 	/*
 	 if (game.fantasy.activePlayer && !game.fantasy.cardsDealt) {
     const fantasyPlayer = game.players[game.fantasy.activePlayer];
@@ -216,7 +214,6 @@ function dealCards() {
   if (game.currentDealIndex >= game.dealSequence.length) {
     game.phase = 'scoring';
     calculateScores();
-    game.gameCount++;
     broadcastGameState();
     setTimeout(resetGame, 5000);
     return;
@@ -242,17 +239,17 @@ function dealCards() {
 */
   // Стандартная логика раздачи...
   const cardsToDeal = game.dealSequence[game.currentDealIndex];
-  if(game.currentDealIndex ===0){
-	  const playerIds = Object.keys(game.players);
-	  game.currentPlayer = playerIds[game.firstPlayerIndex];
+  /*if(game.currentDealIndex ===0){
+	  game.currentPlayer = getPlayerWithoutToken();
   }else{
 	  const playerIds = Object.keys(game.players);
 	  game.currentPlayer = playerIds[game.round % 2];
-  }
-  //const playerId = Object.keys(game.players)[game.round % 2];
-  
-  game.players[game.currentPlayer].hand = game.deck.splice(0, cardsToDeal);
-//  game.currentPlayer = playerId;
+  }*/
+  const playerId = Object.keys(game.players)[game.round % 2];
+  console.log('playerId ', playerId);
+  //console.log('game.players ', game.players);
+  game.players[playerId].hand = game.deck.splice(0, cardsToDeal);
+  game.currentPlayer = playerId;
   game.phase = 'placing';
   game.cardsToPlace = cardsToDeal;
   game.discardPhase = cardsToDeal === 3;
@@ -538,6 +535,7 @@ function resetGame() {
   game.phase = 'waiting';
   game.deck = [];
   game.currentPlayer = null;
+  game.turn =(game.turn == 0?1:0)
   game.round = 0;
   game.currentDealIndex = 0;
   game.fantasy.cardsDealt = false;
@@ -580,16 +578,13 @@ function broadcastGameState() {
 
 function getPlayerGameState(playerId) {
   const opponentId = Object.keys(game.players).find(id => id !== playerId);
-  const playerIds = Object.keys(game.players);
-  const isFirstPlayer = playerId === playerIds[game.firstPlayerIndex]
   return {
     phase: game.phase,
     currentPlayer: game.currentPlayer,
     round: game.round,
     cardsToPlace: game.cardsToPlace,
-    isFirstPlayer: isFirstPlayer,
-    gameCount:game.gameCount,
-  //  hasFirstPlayerToken: playerId === game.firstPlayerToken,
+   // firstPlayerToken: game.firstPlayerToken,
+   // hasFirstPlayerToken: playerId === game.firstPlayerToken,
     player: sanitizePlayerState(game.players[playerId], true),
     opponent: opponentId ? sanitizePlayerState(game.players[opponentId], false) : null,
     deckSize: game.deck.length,
