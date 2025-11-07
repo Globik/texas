@@ -433,7 +433,7 @@
       <!-- Opponent Board -->
       <section class="player-area-box">
       <div class="player-area">
-        <div class="board first" id="opponentBoard">
+        <div class="board first" id="opponentBoard"><div class="fishka" style="display:none;" id="fishkaer">&#127922;</div>
           <div class="board-row f" data-row="top">
             <div class="board-slot" data-pos="0"></div>
             <div class="board-slot" data-pos="1"></div>
@@ -505,7 +505,7 @@
       </section>
        <section class="player-area-box">
       <div class="player-area">
-        <div class="board third" id="playerBoard">
+        <div class="board third" id="playerBoard"><div class="fishka" style="display:none;" id="fishkayou">&#127922;</div>
           <div class="board-row f" data-row="top">
             <div class="board-slot" data-pos="0"></div>
             <div class="board-slot" data-pos="1"></div>
@@ -650,6 +650,14 @@ function goready(el){
            case 'fantasyStart':
       showFantasyNotification(data.playerId);
       break;
+      case 'fucker':
+      alert(JSON.stringify(data));
+      if(data.fishka == playerId){
+		  fishkayou.style.display = "block";
+	  }else{
+		  fishkaer.style.display = "block";
+	  }
+      break;
       }
     }
     /*
@@ -749,7 +757,7 @@ function deleteData(){
       
       
       
-      
+     // alert(data.round)
       
       
     
@@ -857,6 +865,7 @@ function deleteData(){
       const r = data.player.royalties;
       //const d = data.opponent.royalties;
      // if(!r.top || !r.middle || !r.bottom)return;
+     //alert(JSON.stringify(r.top))
       royaltiesInfo = [
         r.top.description,
         r.middle.description,

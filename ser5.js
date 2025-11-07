@@ -162,19 +162,19 @@ function handleReady(ws) {
     if (Object.values(game.players).every(p => p.ready) && 
         Object.keys(game.players).length === 2) {
 			console.log('must start game');
-      startGame();
+      startGame(ws);
     }
   }
 }
 
-function startGame() {
+function startGame(ws) {
 	console.log('startGame, suka');
   game.phase = 'dealing';
   game.deck = createDeck();
   game.round = game.turn;
   game.currentDealIndex = 0;
   game.discardPhase = false;
-  dealCards();
+  dealCards(ws);
   game.fantasy = {
     activePlayer: game.fantasy.nextFantasyCandidate,
     cardsDealt: false,
@@ -185,9 +185,9 @@ function startGame() {
   //console.log('fishka' ,game.players[game.firstPlayerToken].name);
 }
 
+var k = 0;
 
-
-function dealCards() {
+function dealCards(ws) {
 	console.log('dealCards');
 	/*
 	 if (game.fantasy.activePlayer && !game.fantasy.cardsDealt) {
@@ -247,7 +247,16 @@ function dealCards() {
   }*/
   const playerId = Object.keys(game.players)[game.round % 2];
   console.log('playerId ', playerId);
+  const opponentid = Object.keys(game.players)[1];
+  if(game.turn == 0){
+ // if(k == 0){
+	  broadcast(JSON.stringify({type:'fucker', fishka: opponentid}));
+	 // k++;
+  //}
   //console.log('game.players ', game.players);
+}else{
+	 broadcast(JSON.stringify({type:'fucker', fishka: playerId }));
+}
   game.players[playerId].hand = game.deck.splice(0, cardsToDeal);
   game.currentPlayer = playerId;
   game.phase = 'placing';
@@ -525,7 +534,7 @@ function resetGame() {
     //player.ochko = 0;
     player.dopochko = 0;
     player.lineWins = {};
-    player.royalties = {};
+    player.royalties = {top:{amount:0, description:'',dohodscore:0},middle:{amount:0, description:'',dohodscore:0}, bottom:{amount:0, description:'',dohodscore:0}};
     player.combinations = null;
     player.hasFoul = false;
     player.ready = true;
