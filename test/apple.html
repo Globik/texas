@@ -428,6 +428,7 @@
     </div>
     <button onclick="goready(this);">start a game</button>
     <output id="out"></output>
+    <div id="gameStatus"></div>
     <!-- Game Area (hidden initially) -->
     <div class="game-area" id="gameArea">
       <!-- Opponent Board -->
@@ -539,6 +540,7 @@
   <script>
 	 // alert(1%2)
     // DOM Elements
+    var AMPER = 0;
     const lobbyEl = document.getElementById('lobby');
     const gameAreaEl = document.getElementById('gameArea');
     const playerListEl = document.getElementById('playerList');
@@ -555,8 +557,7 @@
     const playerBoardEl = document.getElementById('playerBoard');
     const opponentBoardEl = document.getElementById('opponentBoard');
     const playerDiscardsEl = document.getElementById('playerDiscards');
-    const opponentDiscardsEl = document.getElementById('opponentDiscards');
-
+    const opponentDiscardsEl = document.getElementById('opponentDiscards')
     // Game state
     let playerId = null;
     let selectedCard = null;
@@ -593,6 +594,11 @@ function goready(el){
 	g.forEach(function(el, i){
 		el.remove()
 	})
+	opponentFol.innerHTML = "";
+	playerFol.innerHTML = "";
+	fishkayou.style.display = "none";
+	fishkaer.style.display = "none";
+	AMPER=1;
 	/*
 	ws.send(JSON.stringify({
         action: 'join',
@@ -648,19 +654,32 @@ function goready(el){
           showError(data.message);
           break;
            case 'fantasyStart':
+           alert('fantasyStart')
       showFantasyNotification(data.playerId);
       break;
       case 'fucker':
-      alert(JSON.stringify(data));
+     // alert(JSON.stringify(data));
+  //  if(AMPER == 0){
       if(data.fishka == playerId){
-		  fishkayou.style.display = "block";
+		  fishkayou.style.display = "block";//opponent hod
+		  fishkaer.style.display='none'
 	  }else{
-		  fishkaer.style.display = "block";
+		  fishkaer.style.display = "block";//you hod
+		  fishkayou.style.display='none'
 	  }
+	 AMPER = 1;
+//}else{
+	 /* if(data.fishka == playerId){
+		  fishkaer.style.display = "block";
+	  }else{
+		  fishkayou.style.display = "block";
+	  }*/
+	  AMPER = 0;
+  //}
       break;
       }
     }
-    /*
+    
 function showFantasyNotification(playerId) {
   if (playerId === playerId) {
     gameStatusEl.innerHTML = `
@@ -677,7 +696,7 @@ function showFantasyNotification(playerId) {
   }
 }
 
-
+/*
 // В функции updateGameState()
 if (data.phase === 'fantasyDiscard' && data.playerId === playerId) {
   gameStatusEl.innerHTML = `
@@ -754,7 +773,22 @@ function deleteData(){
       // Update game status
       updateGameStatus(data);
       
-      
+      if (data.phase === 'fantasyDiscard' && data.playerId === playerId) {
+  gameStatusEl.innerHTML = `
+    <div style="color: gold; font-weight: bold;">
+      Выберите 1 карту из 14 для сброса
+    </div>
+  `;
+    const cards = playerHandEl.querySelectorAll('.card');
+  cards.forEach(card => {
+    card.onclick = function() {
+      ws.send(JSON.stringify({
+        action: 'fantasyDiscard',
+        cardId: this.dataset.id
+      }));
+    };
+  });
+}
       
       
      // alert(data.round)
@@ -801,9 +835,11 @@ function deleteData(){
 		  div.textContent = (data.player.score > 0?"+":"") + data.player.score;
 		  if(a)a.appendChild(div);
 	  }
-    if(data.foulMessage){
+    if(data.player.foulMessage){
+		//playerFol
 		playerFol.textContent = "dead hand";//data.foulMessage;
 	}
+	
   }else{
 	  console.log(data.player)
   }
@@ -875,7 +911,7 @@ function deleteData(){
 		  let a = document.querySelector('[data-royt="2"]');
 		  let div = document.createElement('div');
 		  div.className = "royalscore";
-		  div3.setAttribute('data-del', 1);
+		  div.setAttribute('data-del', 1);
 		  div.textContent = (r.top.amount > 0?"+":"") + r.top.amount;
 		  if(a)a.appendChild(div);
 		  
@@ -1033,7 +1069,7 @@ function getLineWinsText(lineWins) {
       
       
       function insertOchko(data, level, n, znak){
-		  console.warn(data)
+		//  console.warn(data)
 		  if(!data.lineWins[level])return;
 		   let a = document.querySelector(n);
 		  let div = document.createElement('div');
@@ -1161,7 +1197,7 @@ function getLineWinsText(lineWins) {
 
     // Card functions
     function createCardElement(card) {
-	console.log(card)
+	//console.log(card)
       if (!card) return null;
       
       const cardEl = document.createElement('div');
@@ -1279,7 +1315,8 @@ function getLineWinsText(lineWins) {
 
 function showError(message) {
       errorMessageEl.textContent = message;
-      setTimeout(() => errorMessageEl.textContent = '', 3000);
+      //console.error(message)
+   //   setTimeout(() => errorMessageEl.textContent = '', 3000);
     }
 
     function showOrderError(errors) {
