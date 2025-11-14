@@ -1,17 +1,4 @@
-const express = require('express');
-const WebSocket = require('ws');
-const path = require('path');
 
-const app = express();
-const PORT = 3000;
-
-app.use(express.static(path.join(__dirname, 'test')));//apple.html
-
-const server = app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
-
-const wss = new WebSocket.Server({ server });
 
 const game = {
   players: {},
@@ -52,6 +39,29 @@ function createDeck() {
   return shuffle(deck);
 }
 
+var t1 = [{suit: '♠',rank:'2'},{suit: '♠',rank:'3'},{suit:'♠', rank:'4'}]
+var m1 = [{suit: '♠',rank:'5'},{suit: '♥',rank:'2'},{suit:'♦',rank:'2'},{suit:'♣',rank:'2'},{suit:'♠',rank:'6'}]
+var b1 = [{suit: '♠',rank:'7'},{suit:'♥',rank:'3'},{suit:'♦',rank:'3'},{suit:'♣',rank:'3'},{suit:'♠',rank:'8'}]
+
+var t2 = [{suit: '♠',rank:'9'},{suit:'♠',rank:'10'},{suit:'♠',rank:'J'}]
+var m2 = [{suit: '♦',rank:'4'},{suit:'♦',rank:'8'},{suit:'♦',rank:'5'},{suit:'♦',rank:'Q'},{suit:'♦',rank:'J'}]
+var b2 = [{suit: '♠',rank:'K'},{suit:'♥',rank:'K'},{suit:'♦',rank:'K'},{suit:'♣',rank:'K'},{suit:'♣',rank:'10'}]
+
+
+/*
+var t1 = [{suit: '♥',rank:'Q'},{suit: '♠',rank:'Q'},{suit:'♥', rank:'3'}] //7 para qq
+var m1 = [{suit: '♣',rank:'A'},{suit: '♠',rank:'A'},{suit:'♦',rank:'8'},{suit:'♠',rank:'5'},{suit:'♦',rank:'2'}]
+var b1 = [{suit: '♣',rank:'7'},{suit:'♦',rank:'7'},{suit:'♥',rank:'7'},{suit:'♣',rank:'6'},{suit:'♣',rank:'3'}]
+
+var t2 = [{suit: '♣',rank:'K'},{suit:'♥',rank:'K'},{suit:'♣',rank:'Q'}]// 8 para KK
+var m2 = [{suit: '♣',rank:'9'},{suit:'♥',rank:'9'},{suit:'♣',rank:'5'},{suit:'♥',rank:'5'},{suit:'♦',rank:'A'}]
+var b2 = [{suit: '♠',rank:'K'},{suit:'♠',rank:'10'},{suit:'♠',rank:'7'},{suit:'♠',rank:'4'},{suit:'♠',rank:'2'}]// flush 4
+//total 11
+*/
+
+
+
+
 function shuffle(deck) {
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -68,53 +78,17 @@ function getCardValue(rank) {
   return values[rank];
 }
 
-wss.on('connection', (ws) => {
-  console.log('New connection');
-
-  ws.on('message', (message) => {
-    const data = JSON.parse(message);
+var k=1;
+function handleJoin() {
+  
+  game.players[1] = {
     
-    switch (data.action) {
-      case 'join':
-        handleJoin(ws, data);
-        break;
-      case 'placeCard':
-        handlePlaceCard(ws, data);
-        break;
-      case 'discard':
-        handleDiscard(ws, data);
-        break;
-        case 'fantasyDiscard':
-        handleFantasyDiscard(ws, data);
-        break;
-      case 'ready':
-        handleReady(ws);
-        break;
-    }
-  });
-
-  ws.on('close', () => {
-    console.log('Client disconnected');
-    removePlayer(ws);
-  });
-});
-
-function handleJoin(ws, data) {
-  if (Object.keys(game.players).length >= 2) {
-    ws.send(JSON.stringify({ type: 'error', message: 'Game is full' }));
-    return;
-  }
-
-  const playerId = `player_${Date.now()}`;
- // game.turn=0;
-  game.players[playerId] = {
-    ws,
-    name: data.name || `Player ${Object.keys(game.players).length + 1}`,
+    name:  `vova`,
     hand: [],
     board: {
-      top: Array(3).fill(null),
-      middle: Array(5).fill(null),
-      bottom: Array(5).fill(null)
+      top: t1,
+      middle: m1,
+      bottom: b1
     },
     discards: [],
     ready: true,
@@ -132,175 +106,52 @@ function handleJoin(ws, data) {
     },
         fantasyCandidate: false
   };
-
-
-
-
-
-
-
-
-  ws.send(JSON.stringify({
-    type: 'joined',
-    playerId,
-    gameState: getPlayerGameState(playerId)
-  }));
-
-  broadcastLobbyStatus();
+  
+  game.players[2] = {
+    
+    name:  `dima`,
+    hand: [],
+    board: {
+      top: t2,
+      middle: m2,
+      bottom: b2
+    },
+    discards: [],
+    ready: true,
+    score: 0,
+    combinations: null,
+    hasFoul: false,
+    lineWins: {},
+    dopochko: 0,
+    foulMessage: '',
+    royalties : {
+	top: { amount: 0, description: '', dohodscore: 0 },
+    middle: { amount: 0, description: '' , dohodscore: 0 },
+    bottom: { amount: 0, description: '' , dohodscore: 0 },
+    total: 0
+    },
+        fantasyCandidate: false
+  };
 }
-console.log('pravda 0%2 ', 0%2)
-console.log('pravda  1%2 ', 1%2)
-console.log('pravda  2%2 ', 2%2)
-function handleReady(ws) {
-	console.log('suech en player');
-  const player = findPlayerByWS(ws);
-  console.log('player ', player.ready)
-  if (player) {
-	  console.log("hier auch player ", player.ready);
-    player.ready = true;
-    broadcastLobbyStatus();
-    console.log('must player');
-    console.log('length ', Object.keys(game.players).length);
-    Object.values(game.players).every(p => { console.log('nu redy', p.ready)}) 
-    if (Object.values(game.players).every(p => p.ready) && 
-        Object.keys(game.players).length === 2) {
-			console.log('must start game');
-      startGame(ws);
-    }
-  }
-}
-var k =0;
-function startGame(ws) {
+handleJoin();
+//handleJoin()
+function startGame() {
 	console.log('startGame, suka');
   game.phase = 'dealing';
-  game.deck = createDeck();
-  game.round = game.turn;
+
+  //game.round = game.turn;
   game.currentDealIndex = 0;
   game.discardPhase = false;
-  dealCards(ws);
+  
   game.fantasy = {
     activePlayer: game.fantasy.nextFantasyCandidate,
     cardsDealt: false,
     nextFantasyCandidate: null
   };
-  //const playerIds = Object.keys(game.players);
-  //game.firstPlayerToken = playerIds[Math.floor(Math.random() * playerIds.length)];
-  //console.log('fishka' ,game.players[game.firstPlayerToken].name);
-   const playerId = Object.keys(game.players)[game.turn % 2];
-   console.warn('turn ', game.turn);
-  console.log('playerId ', playerId);
-  const opponentid = Object.keys(game.players)[(game.turn+1) % 2];
-  console.log('oppontentId ', opponentid);
-  if(game.turn == 0){
-//  if(k == 0){
-	  broadcast(JSON.stringify({type:'fucker', fishka: opponentid}));// if turn o ; opp=1
-	//  k++;
- // }
-  //console.log('game.players ', game.players);
-}else{
-	
-	//if(k==1) {
-		
-broadcast(JSON.stringify({type:'fucker', fishka: opponentid }));
-//k=0;
-//}
+ 
 }
-}
+startGame()
 
-
-
-function dealCards(ws) {
-	//console.log('dealCards');
-	
-	 if (game.fantasy.activePlayer && !game.fantasy.cardsDealt) {
-    const fantasyPlayer = game.players[game.fantasy.activePlayer];
-    const normalPlayerId = Object.keys(game.players).find(id => id !== game.fantasy.activePlayer);
-    
-    // Раздача 14 карт для фантазии
-    fantasyPlayer.hand = game.deck.splice(0, 14);
-    
-    // Обычная раздача для другого игрока
-    game.players[normalPlayerId].hand = game.deck.splice(0, 5);
-    
-    game.phase = 'fantasyDiscard';
-    game.currentPlayer = game.fantasy.activePlayer;
-    game.fantasy.cardsDealt = true;
-    
-    broadcastGameState();
-    broadcast(JSON.stringify({
-      type: 'fantasyStart',
-      playerId: game.fantasy.activePlayer
-    }));
-    return;
-  }
-  if (game.currentDealIndex >= game.dealSequence.length) {
-    game.phase = 'scoring';
-    calculateScores();
-    broadcastGameState();
-    setTimeout(resetGame, 5000);
-    return;
-  }
-  /*
-   // Если у кого-то активна фантазия
-  if (game.fantasy.activePlayer && !game.fantasy.cardsDealt) {
-    const fantasyPlayer = game.players[game.fantasy.activePlayer];
-    
-    // Игрок с фантазией получает 14 карт
-    fantasyPlayer.hand = game.deck.splice(0, 14);
-    game.phase = 'fantasyDiscard';
-    game.currentPlayer = game.fantasy.activePlayer;
-    game.fantasy.cardsDealt = true;
-    
-    // Обычный игрок получает стандартные 5 карт
-    const normalPlayerId = Object.keys(game.players).find(id => id !== game.fantasy.activePlayer);
-    game.players[normalPlayerId].hand = game.deck.splice(0, 5);
-    
-    broadcastGameState();
-    return;
-  }
-*/
-  // Стандартная логика раздачи...
-  const cardsToDeal = game.dealSequence[game.currentDealIndex];
-  /*if(game.currentDealIndex ===0){
-	  game.currentPlayer = getPlayerWithoutToken();
-  }else{
-	  const playerIds = Object.keys(game.players);
-	  game.currentPlayer = playerIds[game.round % 2];
-  }*/
-  const playerId = Object.keys(game.players)[game.round % 2];
-  console.log('playerId ', playerId);
-  const opponentid = Object.keys(game.players)[1];
-  /*
-  if(game.turn == 0){
- // if(k == 0){
-	  broadcast(JSON.stringify({type:'fucker', fishka: opponentid}));
-	 // k++;
-  //}
-  //console.log('game.players ', game.players);
-}else{
-	 broadcast(JSON.stringify({type:'fucker', fishka: playerId }));
-}
-*/ 
-  game.players[playerId].hand = game.deck.splice(0, cardsToDeal);
-  game.currentPlayer = playerId;
-  game.phase = 'placing';
-  game.cardsToPlace = cardsToDeal;
-  game.discardPhase = cardsToDeal === 3;
-  
-  broadcastGameState();
-  game.currentDealIndex++;
-}
-
-function getPlayerWithoutToken(){
-	const playerIds = Object.keys(game.players);
-	return playerIds.find(id => id !== game.firstPlayerToken);
-}
-
-function passFirstPlayerToken(){
-	const playerIds = Object.keys(game.players);
-	game.firstPlayerToken = playerIds.find(id => id !== game.firstPlayerToken);
-	console.log('fishka u ', game.players[game.firstPlayerToken].name);
-}
 
 function checkFantasy(player) {
 	//return true;
@@ -343,70 +194,10 @@ function checkFantasyRepeat(player) {
 
   return false;
 }
-function handlePlaceCard(ws, data) {
-  const player = findPlayerByWS(ws);
-  if (!player || game.phase !== 'placing' || game.currentPlayer !== player.id) return;
 
-  const { cardId, row, position } = data;
-  const cardIndex = player.hand.findIndex(c => c.id === cardId);
-  
-  if (cardIndex === -1 || player.board[row][position] !== null) return;
 
-  player.board[row][position] = player.hand[cardIndex];
-  player.hand.splice(cardIndex, 1);
-  game.cardsToPlace--;
-
-  // Проверяем, нужно ли переходить в фазу сброса
-  if (game.discardPhase && game.cardsToPlace === 1) {
-    game.phase = 'discarding';
-    broadcastGameState();
-    return;
-  }
-
-  // Если все карты размещены, переходим к следующему игроку
-  if (game.cardsToPlace === 0) {
-    game.round++;
-    dealCards();
-  } else {
-    broadcastGameState();
-  }
-}
-
-function handleDiscard(ws, data) {
-  const player = findPlayerByWS(ws);
-  if (!player || game.phase !== 'discarding' || game.currentPlayer !== player.id) return;
-
-  const { cardId } = data;
-  const cardIndex = player.hand.findIndex(c => c.id === cardId);
-  
-  if (cardIndex === -1) return;
-
-  player.discards.push(player.hand[cardIndex]);
-  player.hand.splice(cardIndex, 1);
-  
-  game.round++;
-  dealCards();
-}
-/*
-function calculateScores() {
-  Object.values(game.players).forEach(player => {
-    const errors = validateRowOrder(player.board);
-    player.hasFoul = errors.length > 0;
-    
-    if (player.hasFoul) {
-      player.score = 0;
-      player.foulMessage = 'Фол! Нарушена иерархия рядов';
-    } else {
-      player.score = evaluateBoard(player.board);
-    }
-    
-    player.combinations = checkCombinations(player.board);
-  });
-}*/
 
 function validateRowOrder(board) {
- 
-  
   const errors = [];
   const topStr = getRowAbsoluteStrength(board.top);//Math.max(...board.top.map(c => c ? getCardValue(c.rank) : 0));
   const midStr = getRowAbsoluteStrength(board.middle);//Math.max(...board.middle.map(c => c ? getCardValue(c.rank) : 0));
@@ -423,6 +214,14 @@ console.log(`Row strhengths - Top: ${topStr}, Middle: ${midStr}, Bottom: ${botSt
 
   return errors;
 }
+
+
+
+
+
+
+
+
 
 function evaluateBoard(board) {
   let score = 0;
@@ -475,6 +274,7 @@ function checkCombinations(board) {
   ;['middle', 'bottom'].forEach(row => {
     if (board[row].every(c => c)) {
       const values = board[row].map(c => getCardValue(c.rank)).sort((a,b) => a-b);
+      console.log("***** VALUES ********* ", values);
       const suits = board[row].map(c => c.suit);
       const rankCounts = countRanks(board[row]);
      
@@ -582,18 +382,6 @@ function resetGame() {
 }
 
 
-function findPlayerByWS(ws) {
-  const entry = Object.entries(game.players).find(([id, p]) => p.ws === ws);
-  return entry ? { id: entry[0], ...entry[1] } : null;
-}
-
-function removePlayer(ws) {
-  const playerId = Object.keys(game.players).find(id => game.players[id].ws === ws);
-  if (playerId) {
-    delete game.players[playerId];
-    broadcastLobbyStatus();
-  }
-}
 
 function broadcastLobbyStatus() {
   const lobbyState = {
@@ -649,14 +437,6 @@ function sanitizePlayerState(player, isSelf) {
   };
 }
 
-function broadcast(message) {
-  Object.values(game.players).forEach(player => {
-    if (player.ws.readyState === WebSocket.OPEN) {
-      player.ws.send(message);
-    }
-  });
-}
-
 /* UPDATED */
 
  function handleFantasyDiscard(ws, data) {
@@ -680,12 +460,12 @@ function broadcast(message) {
   broadcastGameState();
 	
 }
+calculateScores()
 function calculateScores() {
 
   const players = Object.values(game.players);
-  
   const [player1, player2] = players;
-console.log("***** PLAYERS ****** ", player1, player2);
+
   // Сбрасываем очки перед расчетом
   players.forEach(p => {
     p.score = 0;
@@ -702,7 +482,7 @@ console.log("***** PLAYERS ****** ", player1, player2);
    [player1, player2].forEach(player => {
     if (!player.hasFoul) {
       player.fantasyCandidate = checkFantasy(player);
-      console.log("player.fantasyCandidate ", player.fantasyCandidate);
+     // console.log("player.fantasyCandidate ", player.fantasyCandidate);
     }
   });
 
@@ -799,26 +579,27 @@ if (!winner.hasFoul && checkFantasyRepeat(winner)) {
   // 2. Бонус за победу во всех трех линиях (+3 очка)
   
   players.forEach(player => {
+	  const opponent = player === player1 ? player2 : player1;
     if (player.lineWins.top.iswin && player.lineWins.middle.iswin && player.lineWins.bottom.iswin) {
-     // player.score += 3;//13+3+3=19
-     // player.dopochko = "+3";
-      const opponent = player === player1 ? player2 : player1;
-      const you = player === player2 ? player1 : player2;
+		console.log("******  PLAYER>SCORE ***** ",opponent.score, ' *********  ', player2.score);
+      opponent.score -=3;//13+3+3=19
+      player2.score+=3;
+      console.log("******  PLAYER>SCORE 2***** ",opponent.score, ' *********  ', player2.score);
+      player.dopochko = "+3";
+      //const opponent = player === player1 ? player2 : player1;
      opponent.dopochko = "-3";
-     you.dopochko = "+3";
      //opponent.score = Math.max(0, opponent.score - 3);//-16=math.max(0,-16-3
      
-     opponent.score -= 3;
-     you.score+=3;
+     //opponent.score -= 3;
      console.error('opponent.score ', opponent.score);
     }
     if (!player.lineWins.top.iswin && !player.lineWins.middle.iswin && !player.lineWins.bottom.iswin){
 		if(player.lineWins.top.ochko === '-1' /*|| player.lineWins.top.ochko !='-1' */ && 
     player.lineWins.middle.ochko === '-1' /*|| player.lineWins.middle.ochko !='-1'*/  && 
     player.lineWins.bottom.ochko === '-1' /*|| player.lineWins.bottom.ochko !='-1' */) {
-		 const opponent = player === player1 ? player2 : player1;
+	//	 const opponent = player === player1 ? player2 : player1;
      //opponent.dopochko = "-3";
-    // opponent.score -= 3;
+     //opponent.score -= 3;
      console.error('*********** GENAU **** opponent.score2 ', opponent.score);
 	}
 }
@@ -838,23 +619,35 @@ if (!winner.hasFoul && checkFantasyRepeat(winner)) {
   4-12=-8 12-4=8
   -1+(-8)=-9 1_+ 8=9
   */
- // if(!player2.hasFoul || !player1.hasFoul)
+ // if(!player2.hasFoul || !player1.hasFoul) 7 8 => 7-8
 if(player2.royalties.top.amount > 0){
 	// 4-12=-8
+	console.log('player1.royalties.top.dohodscore ', player1.royalties.top.dohodscore, ' pl1 score ',player1.score);
+	console.log('player2.royalties.top.dohodscore ', player2.royalties.top.dohodscore, ' pl2 score ',player2.score);
 	player1.royalties.top.dohodscore = player1.royalties.top.amount - player2.royalties.top.amount; 
 	player2.royalties.top.dohodscore = player2.royalties.top.amount - player1.royalties.top.amount;
 	player1.score += player1.royalties.top.dohodscore;
 	player2.score += player2.royalties.top.dohodscore;
-}
+	console.log('player1.royalties.top.dohodscore; ',player1.royalties.top.dohodscore);
+	console.log('player2.royalties.top.dohodscore; ',player2.royalties.top.dohodscore);
+	console.log('top ', player1.score, ' ', player2.score);
+} 
 /*
 if(player1.royalties.top.amount > 0){
+	console.log('player1.royalties.top.dohodscore ', player1.royalties.top.dohodscore, ' pl1 score ',player1.score);
+	console.log('player2.royalties.top.dohodscore ', player2.royalties.top.dohodscore, ' pl2 score ',player2.score);
 	player2.royalties.top.dohodscore = player2.royalties.top.amount - player1.royalties.top.amount; 
 	player1.royalties.top.dohodscore = player1.royalties.top.amount - player2.royalties.top.amount; 
 	player2.score += player2.royalties.top.dohodscore;
 	player1.score += player1.royalties.top.dohodscore;
+	console.log('player1.royalties.top.dohodscore; ',player1.royalties.top.dohodscore);
+	console.log('player2.royalties.top.dohodscore; ',player2.royalties.top.dohodscore);
+	console.log('top ', player2.score, ' ', player1.score);
 }
-  */
+ */ 
 if(player2.royalties.middle.amount > 0){
+	console.log('player1.royalties.middle.dohodscore ', player1.royalties.middle.dohodscore);
+	console.log('player2.royalties.middle.dohodscore ', player2.royalties.middle.dohodscore);
 	player1.royalties.middle.dohodscore = player1.royalties.middle.amount - player2.royalties.middle.amount; 
 	player2.royalties.middle.dohodscore = player2.royalties.middle.amount - player1.royalties.middle.amount;
 	player1.score += player1.royalties.middle.dohodscore;
@@ -862,6 +655,8 @@ if(player2.royalties.middle.amount > 0){
 }
 /*
 if(player1.royalties.middle.amount > 0){
+	console.log('player1.royalties.middle.dohodscore ', player1.royalties.middle.dohodscore);
+	console.log('player2.royalties.middle.dohodscore ', player2.royalties.middle.dohodscore);
 	player2.royalties.middle.dohodscore = player2.royalties.middle.amount - player1.royalties.middle.amount; //0-12=-12
 	player1.royalties.middle.dohodscore = player1.royalties.middle.amount - player2.royalties.middle.amount; 
 	player2.score += player2.royalties.middle.dohodscore;// -12
@@ -870,17 +665,27 @@ if(player1.royalties.middle.amount > 0){
 */
  // if pl2.r.middle==0 p 
 if(player2.royalties.bottom.amount > 0){
+	console.log('player1.royalties.bottom.dohodscore ', player1.royalties.bottom.dohodscore);
+	console.log('player2.royalties.bottom.dohodscore ', player2.royalties.bottom.dohodscore);
 	player1.royalties.bottom.dohodscore = player1.royalties.bottom.amount - player2.royalties.bottom.amount; 
 	player2.royalties.bottom.dohodscore = player2.royalties.bottom.amount - player1.royalties.bottom.amount;
 	player1.score += player1.royalties.bottom.dohodscore;
 	player2.score += player2.royalties.bottom.dohodscore;
+	console.log('player1.royalties.bottom.dohodscore; ',player1.royalties.bottom.dohodscore);
+	console.log('player2.royalties.bottom.dohodscore; ',player2.royalties.bottom.dohodscore);
+	console.log('bot ', player1.score, ' ', player2.score);
 }
 /*
 if(player1.royalties.bottom.amount > 0){
+	console.log('player1.royalties.bottom.dohodscore ', player1.royalties.bottom.dohodscore);
+	console.log('player2.royalties.bottom.dohodscore ', player2.royalties.bottom.dohodscore);
 	player2.royalties.bottom.dohodscore = player2.royalties.bottom.amount - player1.royalties.bottom.amount; 
 	player1.royalties.bottom.dohodscore = player1.royalties.bottom.amount - player2.royalties.bottom.amount; 
 	player2.score += player2.royalties.bottom.dohodscore;
 	player1.score += player1.royalties.bottom.dohodscore;
+	console.log('player1.royalties.bottom.dohodscore; ',player1.royalties.bottom.dohodscore);
+	console.log('player2.royalties.bottom.dohodscore; ',player2.royalties.bottom.dohodscore);
+	console.log('bot ', player2.score, ' ', player1.score);
 }
 */
   // Обновляем комбинации для отображения
@@ -892,28 +697,41 @@ if(player1.royalties.bottom.amount > 0){
       game.fantasy.nextFantasyCandidate = player.id;
     }
   });
+  console.log('player1 ', player1.name);
+  console.log(player1.combinations);
+  console.log(player1.royalties);
+  console.log(player1.lineWins);
+  console.log(player1.dopochko);
+  console.log('score ', player1.score);
+  console.log('player2 ', player2.name);
+  console.log(player2.combinations);
+  console.log(player2.royalties);
+  console.log(player2.lineWins);
+  console.log(player2.dopochko);
+  console.log('score ', player2.score);
 }
 
+   console.log('suka ', 11+''+1); 
 function compareLines(line) {
-	console.log('line ', line);
+	//console.log('line ', line);
   const [player1, player2] = Object.values(game.players);
   
-  const p1Strength = getRowAbsoluteStrength(player1.board[line]);
-  const p2Strength = getRowAbsoluteStrength(player2.board[line]);
+  const p1Strength = getRowAbsoluteStrength(player1.board[line]);//getLineStrength(player1.board[line]);
+  const p2Strength = getRowAbsoluteStrength(player2.board[line]);//getLineStrength(player2.board[line]);
  console.log('p1Strength  p2Strength ',p1Strength , p2Strength);
   if (p1Strength > p2Strength) {
 	  console.log('p1Strength > p2Strength ',p1Strength , p2Strength);
     player1.score += 1;
     player2.score -= 1;
-    console.log('player1.lineWins ', player1.lineWins);
-    console.log('player1.lineWins ', player1.lineWins[line]);
+   // console.log('player1.lineWins ', player1.lineWins);
+   // console.log('player1.lineWins ', player1.lineWins[line]);
     player1.lineWins[line].ochko = 1;
     player2.lineWins[line].ochko = '-1';
     player1.lineWins[line].iswin = true;
   } else if (p2Strength > p1Strength) {
 	  console.log('p2Strength > p1Strength ', p2Strength , p1Strength);
-	  console.log('player2.lineWins ', player2.lineWins);
-    console.log('player2.lineWins ', player2.lineWins[line]);
+	//  console.log('player2.lineWins ', player2.lineWins);
+   // console.log('player2.lineWins ', player2.lineWins[line]);
     player2.score += 1;
     player1.score -= 1;
     player2.lineWins[line].ochko = 1;
@@ -923,12 +741,16 @@ function compareLines(line) {
   }
   // При равенстве очков никто не получает очков за линию
 }
-/*
+
 function getLineStrength(cards) {
-	console.log('getLineStrength');
+	//console.log('getLineStrength');
   if (!cards.every(c => c)) return 0; // Неполные ряды слабее
   
-  const values = cards.map(c => getCardValue(c.rank));
+  const values = cards.map(c => {
+	  console.log('c.rank: ',c.rank);
+	  return getCardValue(c.rank)
+	  });
+  console.log("******** VALUES ! ***** ", values);
   const suits = cards.map(c => c.suit);
   const rankCounts = countRanks(cards);
   
@@ -975,7 +797,77 @@ function getLineStrength(cards) {
 }
 }
 
-*/
+
+
+
+
+
+
+
+
+
+
+
+function getRowAbsoluteStrength(cards) {
+	//console.log('getLineStrength');
+  if (!cards.every(c => c)) return 0; // Неполные ряды слабее
+  
+  const values = cards.map(c => {
+	  console.log('c.rank: ',c.rank);
+	  return getCardValue(c.rank);
+	  }).sort((a,b)=>a-b);
+  console.log("******** VALUES ! ***** ", values);
+  const suits = cards.map(c => c.suit);
+  const rankCounts = countRanks(cards);
+  
+  // Определяем силу комбинации (чем выше число, тем сильнее комбинация)
+  if(cards.length === 3){
+	  if (isThreeOfAKind(rankCounts)){
+		  return 300 + Math.max(...values);
+	  }else if(isPair(rankCounts)){
+		  const pairRank = Object.keys(rankCounts).find(r=> rankCounts[r] ===2);
+		  return 100 + getCardValue(pairRank);
+	  }else{
+		  return Math.max(...values);
+	  }
+  }else if(cards.length === 5){
+	  
+  
+  if (isRoyalFlush(values, suits)) {return 900;
+	  }else if (isStraightFlush(values, suits)){ return 800+values[4];
+	  }else if (isFourOfAKind(rankCounts)) {
+	  const fourRank = Object.keys(rankCounts).find(r=> rankCounts[r]===4);
+ return 700+getCardValue(fourRank);
+ }
+  else if (isFullHouse(rankCounts)){
+	  const threeRank = Object.keys(rankCounts).find(r=>rankCounts[r]===3);
+	   return 600+getCardValue(threeRank);
+   }
+  else if (isFlush(suits)) {return 500+Math.max(...values);
+  }
+  else if (isStraight(values)){
+	   return 400+values[4];
+}else  if (isThreeOfAKind(rankCounts)){
+	  const threeRank = Object.keys(rankCounts).find(r=>rankCounts[r]===3);
+	   return 300+getCardValue(threeRank);
+   }
+ else if (isTwoPairs(rankCounts)) {
+	  const pairs=Object.keys(rankCounts).filter(r=>rankCounts[r]===2);
+	  const highPair=Math.max(...pairs.map(getCardValue));
+	  return 200+highPair;
+  }
+  else if (isPair(rankCounts)){
+	  const pairRank = Object.keys(rankCounts).find(r=> rankCounts[r] ===2);
+	   return 100+getCardValue(pairRank);
+   }else{
+  
+  return Math.max(...values); // Старшая карта
+}
+}
+}
+
+
+
 
 function calculateRoyalties(board) {
   const royalties = {
@@ -1082,6 +974,10 @@ function calculateRoyalties(board) {
 
 
 
+
+
+
+
 // Вспомогательные функции для проверки комбинаций
 function isRoyalFlush(values, suits) {
   return isStraightFlush(values, suits) && Math.max(...values) === 14; // A-high
@@ -1125,65 +1021,3 @@ function isTwoPairs(rankCounts) {
 function isPair(rankCounts) {
   return Object.values(rankCounts).includes(2);
 }
-
-
-
-function getRowAbsoluteStrength(cards) {
-	//console.log('getLineStrength');
-  if (!cards.every(c => c)) return 0; // Неполные ряды слабее
-  
-  const values = cards.map(c => {
-	  console.log('c.rank: ',c.rank);
-	  return getCardValue(c.rank);
-	  }).sort((a,b)=>a-b);
-  console.log("******** VALUES ! ***** ", values);
-  const suits = cards.map(c => c.suit);
-  const rankCounts = countRanks(cards);
-  
-  // Определяем силу комбинации (чем выше число, тем сильнее комбинация)
-  if(cards.length === 3){
-	  if (isThreeOfAKind(rankCounts)){
-		  return 300 + Math.max(...values);
-	  }else if(isPair(rankCounts)){
-		  const pairRank = Object.keys(rankCounts).find(r=> rankCounts[r] ===2);
-		  return 100 + getCardValue(pairRank);
-	  }else{
-		  return Math.max(...values);
-	  }
-  }else if(cards.length === 5){
-	  
-  
-  if (isRoyalFlush(values, suits)) {return 900;
-	  }else if (isStraightFlush(values, suits)){ return 800+values[4];
-	  }else if (isFourOfAKind(rankCounts)) {
-	  const fourRank = Object.keys(rankCounts).find(r=> rankCounts[r]===4);
- return 700+getCardValue(fourRank);
- }
-  else if (isFullHouse(rankCounts)){
-	  const threeRank = Object.keys(rankCounts).find(r=>rankCounts[r]===3);
-	   return 600+getCardValue(threeRank);
-   }
-  else if (isFlush(suits)) {return 500+Math.max(...values);
-  }
-  else if (isStraight(values)){
-	   return 400+values[4];
-}else  if (isThreeOfAKind(rankCounts)){
-	  const threeRank = Object.keys(rankCounts).find(r=>rankCounts[r]===3);
-	   return 300+getCardValue(threeRank);
-   }
- else if (isTwoPairs(rankCounts)) {
-	  const pairs=Object.keys(rankCounts).filter(r=>rankCounts[r]===2);
-	  const highPair=Math.max(...pairs.map(getCardValue));
-	  return 200+highPair;
-  }
-  else if (isPair(rankCounts)){
-	  const pairRank = Object.keys(rankCounts).find(r=> rankCounts[r] ===2);
-	   return 100+getCardValue(pairRank);
-   }else{
-  
-  return Math.max(...values); // Старшая карта
-}
-}
-}
-
-
