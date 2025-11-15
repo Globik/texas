@@ -38,7 +38,7 @@ function createDeck() {
   }
   return shuffle(deck);
 }
-
+/*
 var t1 = [{suit: '♠',rank:'2'},{suit: '♠',rank:'3'},{suit:'♠', rank:'4'}]
 var m1 = [{suit: '♠',rank:'5'},{suit: '♥',rank:'2'},{suit:'♦',rank:'2'},{suit:'♣',rank:'2'},{suit:'♠',rank:'6'}]
 var b1 = [{suit: '♠',rank:'7'},{suit:'♥',rank:'3'},{suit:'♦',rank:'3'},{suit:'♣',rank:'3'},{suit:'♠',rank:'8'}]
@@ -46,8 +46,8 @@ var b1 = [{suit: '♠',rank:'7'},{suit:'♥',rank:'3'},{suit:'♦',rank:'3'},{su
 var t2 = [{suit: '♠',rank:'9'},{suit:'♠',rank:'10'},{suit:'♠',rank:'J'}]
 var m2 = [{suit: '♦',rank:'4'},{suit:'♦',rank:'8'},{suit:'♦',rank:'5'},{suit:'♦',rank:'Q'},{suit:'♦',rank:'J'}]
 var b2 = [{suit: '♠',rank:'K'},{suit:'♥',rank:'K'},{suit:'♦',rank:'K'},{suit:'♣',rank:'K'},{suit:'♣',rank:'10'}]
-
-
+//total 22
+*/
 /*
 var t1 = [{suit: '♥',rank:'Q'},{suit: '♠',rank:'Q'},{suit:'♥', rank:'3'}] //7 para qq
 var m1 = [{suit: '♣',rank:'A'},{suit: '♠',rank:'A'},{suit:'♦',rank:'8'},{suit:'♠',rank:'5'},{suit:'♦',rank:'2'}]
@@ -60,7 +60,14 @@ var b2 = [{suit: '♠',rank:'K'},{suit:'♠',rank:'10'},{suit:'♠',rank:'7'},{s
 */
 
 
+var t1 = [{suit: '♠',rank:'A'},{suit: '♣',rank:'A'},{suit:'♦', rank:'Q'}]//9 par aa                                            1
+var m1 = [{suit: '♥',rank:'6'},{suit: '♣',rank:'6'},{suit:'♦',rank:'5'},{suit:'♥',rank:'5'},{suit:'♥',rank:'10'}]//            -1
+var b1 = [{suit: '♠',rank:'7'},{suit:'♦',rank:'8'},{suit:'♠',rank:'9'},{suit:'♠',rank:'10'},{suit:'♦',rank:'J'}]//street 2    -1
 
+var t2 = [{suit: '♦',rank:'K'},{suit:'♣',rank:'K'},{suit:'♦',rank:'9'}]// 8 para kk                                            -1
+var m2 = [{suit: '♠',rank:'2'},{suit:'♦',rank:'2'},{suit:'♣',rank:'2'},{suit:'♠',rank:'3'},{suit:'♦',rank:'3'}]//full house 12 1
+var b2 = [{suit: '♠',rank:'8'},{suit:'♥',rank:'8'},{suit:'♣',rank:'8'},{suit:'♠',rank:'5'},{suit:'♣',rank:'5'}]//full house 6  1
+//total 16
 
 function shuffle(deck) {
   for (let i = deck.length - 1; i > 0; i--) {
@@ -579,11 +586,12 @@ if (!winner.hasFoul && checkFantasyRepeat(winner)) {
   // 2. Бонус за победу во всех трех линиях (+3 очка)
   
   players.forEach(player => {
-	  const opponent = player === player1 ? player2 : player1;
+	  const opponent= player === player1 ? player2 : player1;
+	  const you=player===player2?player1:player2
     if (player.lineWins.top.iswin && player.lineWins.middle.iswin && player.lineWins.bottom.iswin) {
-		console.log("******  PLAYER>SCORE ***** ",opponent.score, ' *********  ', player2.score);
+		console.log(opponent,player,'******  PLAYER>SCORE ***** ',opponent.score, ' *********  ', player2.score);
       opponent.score -=3;//13+3+3=19
-      player2.score+=3;
+     player.score+=3;
       console.log("******  PLAYER>SCORE 2***** ",opponent.score, ' *********  ', player2.score);
       player.dopochko = "+3";
       //const opponent = player === player1 ? player2 : player1;
@@ -620,7 +628,8 @@ if (!winner.hasFoul && checkFantasyRepeat(winner)) {
   -1+(-8)=-9 1_+ 8=9
   */
  // if(!player2.hasFoul || !player1.hasFoul) 7 8 => 7-8
-if(player2.royalties.top.amount > 0){
+ 
+if(player2.royalties.top.amount > player1.royalties.top.amount){
 	// 4-12=-8
 	console.log('player1.royalties.top.dohodscore ', player1.royalties.top.dohodscore, ' pl1 score ',player1.score);
 	console.log('player2.royalties.top.dohodscore ', player2.royalties.top.dohodscore, ' pl2 score ',player2.score);
@@ -631,9 +640,10 @@ if(player2.royalties.top.amount > 0){
 	console.log('player1.royalties.top.dohodscore; ',player1.royalties.top.dohodscore);
 	console.log('player2.royalties.top.dohodscore; ',player2.royalties.top.dohodscore);
 	console.log('top ', player1.score, ' ', player2.score);
-} 
-/*
-if(player1.royalties.top.amount > 0){
+} else{
+
+//if(player1.royalties.top.amount > 0){
+	
 	console.log('player1.royalties.top.dohodscore ', player1.royalties.top.dohodscore, ' pl1 score ',player1.score);
 	console.log('player2.royalties.top.dohodscore ', player2.royalties.top.dohodscore, ' pl2 score ',player2.score);
 	player2.royalties.top.dohodscore = player2.royalties.top.amount - player1.royalties.top.amount; 
@@ -643,9 +653,10 @@ if(player1.royalties.top.amount > 0){
 	console.log('player1.royalties.top.dohodscore; ',player1.royalties.top.dohodscore);
 	console.log('player2.royalties.top.dohodscore; ',player2.royalties.top.dohodscore);
 	console.log('top ', player2.score, ' ', player1.score);
+	
 }
- */ 
-if(player2.royalties.middle.amount > 0){
+ 
+if(player2.royalties.middle.amount > player1.royalties.middle.amount){
 	console.log('player1.royalties.middle.dohodscore ', player1.royalties.middle.dohodscore);
 	console.log('player2.royalties.middle.dohodscore ', player2.royalties.middle.dohodscore);
 	player1.royalties.middle.dohodscore = player1.royalties.middle.amount - player2.royalties.middle.amount; 
@@ -653,18 +664,20 @@ if(player2.royalties.middle.amount > 0){
 	player1.score += player1.royalties.middle.dohodscore;
 	player2.score += player2.royalties.middle.dohodscore;
 }
-/*
-if(player1.royalties.middle.amount > 0){
+else{
+//if(player1.royalties.middle.amount > 0){
+	
 	console.log('player1.royalties.middle.dohodscore ', player1.royalties.middle.dohodscore);
 	console.log('player2.royalties.middle.dohodscore ', player2.royalties.middle.dohodscore);
 	player2.royalties.middle.dohodscore = player2.royalties.middle.amount - player1.royalties.middle.amount; //0-12=-12
 	player1.royalties.middle.dohodscore = player1.royalties.middle.amount - player2.royalties.middle.amount; 
 	player2.score += player2.royalties.middle.dohodscore;// -12
 	player1.score += player1.royalties.middle.dohodscore;
+	
 }
-*/
- // if pl2.r.middle==0 p 
-if(player2.royalties.bottom.amount > 0){
+
+ 
+if(player2.royalties.bottom.amount > player1.royalties.bottom.amount){
 	console.log('player1.royalties.bottom.dohodscore ', player1.royalties.bottom.dohodscore);
 	console.log('player2.royalties.bottom.dohodscore ', player2.royalties.bottom.dohodscore);
 	player1.royalties.bottom.dohodscore = player1.royalties.bottom.amount - player2.royalties.bottom.amount; 
@@ -675,8 +688,9 @@ if(player2.royalties.bottom.amount > 0){
 	console.log('player2.royalties.bottom.dohodscore; ',player2.royalties.bottom.dohodscore);
 	console.log('bot ', player1.score, ' ', player2.score);
 }
-/*
-if(player1.royalties.bottom.amount > 0){
+else{
+//if(player1.royalties.bottom.amount > 0){
+	
 	console.log('player1.royalties.bottom.dohodscore ', player1.royalties.bottom.dohodscore);
 	console.log('player2.royalties.bottom.dohodscore ', player2.royalties.bottom.dohodscore);
 	player2.royalties.bottom.dohodscore = player2.royalties.bottom.amount - player1.royalties.bottom.amount; 
@@ -686,8 +700,9 @@ if(player1.royalties.bottom.amount > 0){
 	console.log('player1.royalties.bottom.dohodscore; ',player1.royalties.bottom.dohodscore);
 	console.log('player2.royalties.bottom.dohodscore; ',player2.royalties.bottom.dohodscore);
 	console.log('bot ', player2.score, ' ', player1.score);
+	
 }
-*/
+
   // Обновляем комбинации для отображения
   players.forEach(player => {
     player.combinations = checkCombinations(player.board);

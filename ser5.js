@@ -805,11 +805,11 @@ if (!winner.hasFoul && checkFantasyRepeat(winner)) {
       const opponent = player === player1 ? player2 : player1;
       const you = player === player2 ? player1 : player2;
      opponent.dopochko = "-3";
-     you.dopochko = "+3";
+     player.dopochko = "+3";
      //opponent.score = Math.max(0, opponent.score - 3);//-16=math.max(0,-16-3
      
      opponent.score -= 3;
-     you.score+=3;
+     player.score+=3;
      console.error('opponent.score ', opponent.score);
     }
     if (!player.lineWins.top.iswin && !player.lineWins.middle.iswin && !player.lineWins.bottom.iswin){
@@ -839,50 +839,50 @@ if (!winner.hasFoul && checkFantasyRepeat(winner)) {
   -1+(-8)=-9 1_+ 8=9
   */
  // if(!player2.hasFoul || !player1.hasFoul)
-if(player2.royalties.top.amount > 0){
+if(player2.royalties.top.amount > player1.royalties.top.amount){
 	// 4-12=-8
 	player1.royalties.top.dohodscore = player1.royalties.top.amount - player2.royalties.top.amount; 
 	player2.royalties.top.dohodscore = player2.royalties.top.amount - player1.royalties.top.amount;
 	player1.score += player1.royalties.top.dohodscore;
 	player2.score += player2.royalties.top.dohodscore;
 }
-/*
-if(player1.royalties.top.amount > 0){
+else{
+//if(player1.royalties.top.amount > 0){
 	player2.royalties.top.dohodscore = player2.royalties.top.amount - player1.royalties.top.amount; 
 	player1.royalties.top.dohodscore = player1.royalties.top.amount - player2.royalties.top.amount; 
 	player2.score += player2.royalties.top.dohodscore;
 	player1.score += player1.royalties.top.dohodscore;
 }
-  */
-if(player2.royalties.middle.amount > 0){
+  
+if(player2.royalties.middle.amount > player1.royalties.middle.amount){
 	player1.royalties.middle.dohodscore = player1.royalties.middle.amount - player2.royalties.middle.amount; 
 	player2.royalties.middle.dohodscore = player2.royalties.middle.amount - player1.royalties.middle.amount;
 	player1.score += player1.royalties.middle.dohodscore;
 	player2.score += player2.royalties.middle.dohodscore;
-}
-/*
-if(player1.royalties.middle.amount > 0){
+}else{
+
+//if(player1.royalties.middle.amount > 0){
 	player2.royalties.middle.dohodscore = player2.royalties.middle.amount - player1.royalties.middle.amount; //0-12=-12
 	player1.royalties.middle.dohodscore = player1.royalties.middle.amount - player2.royalties.middle.amount; 
 	player2.score += player2.royalties.middle.dohodscore;// -12
 	player1.score += player1.royalties.middle.dohodscore;
 }
-*/
+
  // if pl2.r.middle==0 p 
-if(player2.royalties.bottom.amount > 0){
+if(player2.royalties.bottom.amount > player1.royalties.bottom.amount){
 	player1.royalties.bottom.dohodscore = player1.royalties.bottom.amount - player2.royalties.bottom.amount; 
 	player2.royalties.bottom.dohodscore = player2.royalties.bottom.amount - player1.royalties.bottom.amount;
 	player1.score += player1.royalties.bottom.dohodscore;
 	player2.score += player2.royalties.bottom.dohodscore;
-}
-/*
-if(player1.royalties.bottom.amount > 0){
+}else{
+
+//if(player1.royalties.bottom.amount > 0){
 	player2.royalties.bottom.dohodscore = player2.royalties.bottom.amount - player1.royalties.bottom.amount; 
 	player1.royalties.bottom.dohodscore = player1.royalties.bottom.amount - player2.royalties.bottom.amount; 
 	player2.score += player2.royalties.bottom.dohodscore;
 	player1.score += player1.royalties.bottom.dohodscore;
 }
-*/
+
   // Обновляем комбинации для отображения
   players.forEach(player => {
     player.combinations = checkCombinations(player.board);
