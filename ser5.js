@@ -21,6 +21,8 @@ const game = {
   turn: 0,
   round: 0,
   dealSequence: [5, 5, 3, 3, 3, 3,3,3,3,3],
+  nextindex:[5,3,3,3,3],
+  currentnextindex:0,
   currentDealIndex: 0,
   cardsToPlace: 0,
   discardPhase: false,
@@ -29,7 +31,7 @@ const game = {
     cardsDealt: false,
     nextFantasyCandidate: null
   },
- // firstPlayerToken: null
+ currentPlayer: null
 };
 
 
@@ -73,13 +75,21 @@ wss.on('connection', (ws) => {
 
   ws.on('message', (message) => {
     const data = JSON.parse(message);
-    
+    console.log(data);
     switch (data.action) {
       case 'join':
         handleJoin(ws, data);
         break;
       case 'placeCard':
+      if(game.phase==='fantasyPlacing'){
+		  if(data.subtype && data.subtype ==='trueFantasy'){
+		  handleFantasyPlaceCard(ws,data);
+	  }else{
+		  handlePlaceCard(ws, data);
+	  }
+	  }else{
         handlePlaceCard(ws, data);
+	}
         break;
       case 'discard':
         handleDiscard(ws, data);
@@ -87,6 +97,7 @@ wss.on('connection', (ws) => {
         case 'fantasyDiscard':
         handleFantasyDiscard(ws, data);
         break;
+        
       case 'ready':
         handleReady(ws);
         break;
@@ -108,6 +119,7 @@ function handleJoin(ws, data) {
   const playerId = `player_${Date.now()}`;
  // game.turn=0;
   game.players[playerId] = {
+	  id:playerId,
     ws,
     name: data.name || `Player ${Object.keys(game.players).length + 1}`,
     hand: [],
@@ -178,6 +190,7 @@ function startGame(ws) {
   game.currentDealIndex = 0;
   game.discardPhase = false;
   dealCards(ws);
+  game.currentPlayer=null;
   game.fantasy = {
     activePlayer: game.fantasy.nextFantasyCandidate,
     cardsDealt: false,
@@ -207,22 +220,26 @@ broadcast(JSON.stringify({type:'fucker', fishka: opponentid }));
 }
 }
 
-
-
+var u=4;
+var i=0;
+const suka=[5,3,3,3,3];
 function dealCards(ws) {
-	//console.log('dealCards');
-	
-	 if (game.fantasy.activePlayer && !game.fantasy.cardsDealt) {
+	console.log('dealCards ',game.currentPlayer);
+	game.fantasy.activePlayer=Object.keys(game.players)[1];
+	console.log('id ', game.fantasy.activePlayer, ' game.fantasy.cardsDealt ',game.fantasy.cardsDealt);
+	if (game.fantasy.activePlayer && !game.fantasy.cardsDealt) {
+	//game.fantasy.activePlayer=Object.keys(game.players)[1];
+	console.log('id ', game.fantasy.activePlayer, ' game.fantasy.cardsDealt ',game.fantasy.cardsDealt);
     const fantasyPlayer = game.players[game.fantasy.activePlayer];
     const normalPlayerId = Object.keys(game.players).find(id => id !== game.fantasy.activePlayer);
     
     // Раздача 14 карт для фантазии
     fantasyPlayer.hand = game.deck.splice(0, 14);
-    
+    fantasyPlayer.cardstodeal = 14;
     // Обычная раздача для другого игрока
     game.players[normalPlayerId].hand = game.deck.splice(0, 5);
-    
-    game.phase = 'fantasyDiscard';
+    console.log("current PLayer ", game.currentPlayer);
+    game.phase = 'fantasyPlacing';
     game.currentPlayer = game.fantasy.activePlayer;
     game.fantasy.cardsDealt = true;
     
@@ -233,6 +250,7 @@ function dealCards(ws) {
     }));
     return;
   }
+ // return;
   if (game.currentDealIndex >= game.dealSequence.length) {
     game.phase = 'scoring';
     calculateScores();
@@ -240,26 +258,46 @@ function dealCards(ws) {
     setTimeout(resetGame, 5000);
     return;
   }
-  /*
-   // Если у кого-то активна фантазия
-  if (game.fantasy.activePlayer && !game.fantasy.cardsDealt) {
+  
+   console.log('Если у кого-то активна фантазия aktivePlayer cardsDealt ', game.fantasy.activePlayer,' ', game.fantasy.cardsDealt,' ',game.phase)
+   console.warn("*** U **** ", u);
+ if (game.fantasy.activePlayer && game.fantasy.cardsDealt) {
+ console.log('soll normal player deal cards');
+ game.phase='fantasyPlacing';
+ if(game.phase=='fantasyPlacing'){
+	 console.warn('soll phase fantasyPlacing');
     const fantasyPlayer = game.players[game.fantasy.activePlayer];
     
     // Игрок с фантазией получает 14 карт
-    fantasyPlayer.hand = game.deck.splice(0, 14);
-    game.phase = 'fantasyDiscard';
-    game.currentPlayer = game.fantasy.activePlayer;
-    game.fantasy.cardsDealt = true;
+    //fantasyPlayer.hand = game.deck.splice(0, 14);
+    //game.phase = 'fantasyDiscard';
+   // game.currentPlayer = game.fantasy.activePlayer;
+    //game.fantasy.cardsDealt = true;
     
     // Обычный игрок получает стандартные 5 карт
     const normalPlayerId = Object.keys(game.players).find(id => id !== game.fantasy.activePlayer);
-    game.players[normalPlayerId].hand = game.deck.splice(0, 5);
-    
-    broadcastGameState();
+    game.players[normalPlayerId].hand = game.deck.splice(0, u);
+    game.discardPhase = u === 3;
+    if(game.discardPhase){
+		console.warn("DISCARDING NORMAL ");
+		//game.phase='discarding';
+	}
+	console.log("***** I and suka.length", i,' ', suka.length);
+    if(i==suka.length-1){
+		console.warn('i=',i);
+		
+	}
+	console.log("************* hand length", game.players[normalPlayerId].hand);
+	if(game.players[normalPlayerId].hand.length==0){
+		checkFantasyCompletion();
+		}
+		    broadcastGameState();
     return;
   }
-*/
-  // Стандартная логика раздачи...
+  return
+}
+  console.log('Стандартная логика раздачи...')
+  console.log('Если у кого-то активна фантазия aktivePlayer cardsDealt ', game.fantasy.activePlayer,' ', game.fantasy.cardsDealt,' ',game.phase)
   const cardsToDeal = game.dealSequence[game.currentDealIndex];
   /*if(game.currentDealIndex ===0){
 	  game.currentPlayer = getPlayerWithoutToken();
@@ -288,6 +326,7 @@ function dealCards(ws) {
   game.discardPhase = cardsToDeal === 3;
   
   broadcastGameState();
+  
   game.currentDealIndex++;
 }
 
@@ -303,7 +342,7 @@ function passFirstPlayerToken(){
 }
 
 function checkFantasy(player) {
-	//return true;
+	return true;
   if (player.hasFoul) return false;
   
   const topRow = player.board.top;
@@ -320,6 +359,7 @@ function checkFantasy(player) {
   return false;
 }
 function checkFantasyRepeat(player) {
+	return true;
   if (player.hasFoul) return false;
 
   // Проверка верхнего ряда (сет)
@@ -343,8 +383,65 @@ function checkFantasyRepeat(player) {
 
   return false;
 }
+//var u=4;
+//var i=0;
 function handlePlaceCard(ws, data) {
   const player = findPlayerByWS(ws);
+  console.warn("**** game.phase ********** ", game.phase);
+  game.phase='fantasyPlacing'
+  if(game.phase=='fantasyPlacing'){
+	  /*
+	   console.warn('Проверяем, нужно ли переходить в фазу сброса');
+ if (game.discardPhase && game.cardsToPlace === 2) {
+    game.phase = 'discarding';
+    broadcastGameState();
+    return;
+  }*/
+	  console.log('is current Player? ',game.currentPlayer !== player.id);
+	  const normalPlayerId=Object.keys(game.players).find(id=> id!==game.fantasy.activePlayer);
+	  const normalPlayer=game.players[normalPlayerId]
+	  console.log('activePlayer == player id ', game.fantasy.activePlayer,' ',normalPlayerId, ' player.id ', player.id);
+	  const { cardId, row, position } = data;
+	  console.log('cardId, row, position ',cardId,' ',row,' ',position);
+  const cardIndex = player.hand.findIndex(c => c.id === cardId);
+  
+  if (cardIndex === -1 || player.board[row][position] !== null){
+	  console.error('cardIndex=-1 or player.board[row][position] !== null');
+	   return;}
+
+  player.board[row][position] = player.hand[cardIndex];
+  player.hand.splice(cardIndex, 1);
+  var nextindex=game.nextindex[game.currentnextindex];//5
+  
+  //const suka=[5,3,3,3,3];
+  var luka=suka[i]
+  game.cardsToPlace=nextindex;//]game.nextindex[game.currentnextindex];
+  game.cardsToPlace=u;
+  u--;
+ 
+  nextindex++;
+   console.warn('Проверяем, нужно ли переходить в фазу сброса');
+  if (game.discardPhase && game.cardsToPlace === 2) {
+	  i++;
+	  u=suka[i];
+    game.phase = 'discarding';
+    broadcastGameState();
+    //game.phase='fantasyPlacing'
+    return;
+  }
+  console.log('game.cardsToPlace-- ', game.cardsToPlace, ' ',nextindex);
+  if (game.cardsToPlace === 0) {
+	  console.log('game.cardsToPlace=0');
+	  i++;
+	  u=suka[i];
+	  game.fantasy.cardsDealt = true;
+	  console.warn("u ", u, ' i ', i);
+	  dealCards();
+	  checkFantasyCompletion();
+  }
+   broadcastGameState();
+   return;
+  }
   if (!player || game.phase !== 'placing' || game.currentPlayer !== player.id) return;
 
   const { cardId, row, position } = data;
@@ -370,39 +467,109 @@ function handlePlaceCard(ws, data) {
   } else {
     broadcastGameState();
   }
+  
 }
+var l=14;
+function handleFantasyPlaceCard(ws, data){
+	console.warn("handleFantasyPlaceCard");
+	const player = findPlayerByWS(ws);
+	if(!player || game.phase !== 'fantasyPlacing') {
+		console.error('somthing wrong');
+		return;
+	}
+	const { cardId, row, position } = data;
+	const cardIndex=player.hand.findIndex(c=> c.id === cardId);
+	if(cardIndex===-1 || player.board[row][position !==null]){
+		console.error('no index');
+		 return;
+	 }
+	player.board[row][position]=player.hand[cardIndex];
+	player.hand.splice(cardIndex, 1);
+	console.warn("cardstodeal ", l);
 
+		
+		if(l==2){
+			console.log('ura cardstodeal ', l);
+			game.phase='fantasyFinalDiscard';
+			game.currentPlayer=game.fantasy.activePlayer;
+		//	broadcastGameState();
+		//l=0;
+		}
+	l--;
+	broadcastGameState();
+}
 function handleDiscard(ws, data) {
+	console.warn('handle discard');
   const player = findPlayerByWS(ws);
-  if (!player || game.phase !== 'discarding' || game.currentPlayer !== player.id) return;
-
+  if (!player || game.phase !== 'discarding'/* || game.currentPlayer !== player.id*/){
+	  console.error(game.currentPlayer ,'!== ',player.id , " **** HANDLEDISCARD***",);
+	   return;
+}
+console.warn("HALI HALLO")
   const { cardId } = data;
   const cardIndex = player.hand.findIndex(c => c.id === cardId);
   
-  if (cardIndex === -1) return;
+  if (cardIndex === -1) {
+	  console.error('cardIndex=-1');
+	  return;
+  }
 
   player.discards.push(player.hand[cardIndex]);
   player.hand.splice(cardIndex, 1);
-  
-  game.round++;
+    game.round++;
+   if(player.hand.length==0){
+		//checkFantasyCompletion();
+	}
+	//}else{
   dealCards();
+//}
+  //checkFantasyCompletion();
 }
-/*
-function calculateScores() {
-  Object.values(game.players).forEach(player => {
-    const errors = validateRowOrder(player.board);
-    player.hasFoul = errors.length > 0;
-    
-    if (player.hasFoul) {
-      player.score = 0;
-      player.foulMessage = 'Фол! Нарушена иерархия рядов';
-    } else {
-      player.score = evaluateBoard(player.board);
-    }
-    
-    player.combinations = checkCombinations(player.board);
-  });
-}*/
+function handleFantasyDiscard(ws, data) {
+	 const player = findPlayerByWS(ws);
+  if (!player || game.phase !== 'fantasyFinalDiscard' /*|| game.currentPlayer !== player.id*/) {
+	  console.error('wrong');
+	  console.log('hier player ', player);
+	  return;
+}
+  const { cardId } = data;
+  const cardIndex = player.hand.findIndex(c => c.id === cardId);
+  
+  if (cardIndex === -1) {
+	  console.error('no index');
+	  return;
+}
+  player.discards.push(player.hand[cardIndex]);
+  player.hand.splice(cardIndex, 1);
+  
+  // Переход к обычной игре
+  
+  game.phase = 'fantasyPlacing';
+  game.currentPlayer = Object.keys(game.players)[0];
+  //game.fantasy.cardsDealt = false;
+  //game.cardsToPlace = 13; // 14 - 1 сброшенная
+  
+  broadcastGameState();
+	checkFantasyCompletion();
+}
+function checkFantasyCompletion(){
+	const fantasyPlayer=game.players[game.fantasy.activePlayer];
+	const normalPlayerId=Object.keys(game.players).find(id=> id !== game.fantasy.activePlayer);
+	const normalPlayer=game.players[normalPlayerId];
+	const fantasyFinished = l ===1;
+	const normalFinished=!normalPlayer.hand || normalPlayer.hand.length===0;
+	console.log("**** L ****",l);
+	console.log('fantasyFinished && normalFinished ', fantasyFinished , normalFinished);
+	if(fantasyFinished && normalFinished){
+		game.phase='scoring';
+		calculateScores();
+		broadcastGameState();
+		//game.phase='fantasyPlacing'
+		setTimeout(resetGame,5000);
+	}else{
+		//game.phase='fantasyPlacing'
+	}
+}
 
 function validateRowOrder(board) {
  
@@ -621,12 +788,14 @@ function getPlayerGameState(playerId) {
     currentPlayer: game.currentPlayer,
     round: game.round,
     cardsToPlace: game.cardsToPlace,
-   // firstPlayerToken: game.firstPlayerToken,
-   // hasFirstPlayerToken: playerId === game.firstPlayerToken,
+   
     player: sanitizePlayerState(game.players[playerId], true),
     opponent: opponentId ? sanitizePlayerState(game.players[opponentId], false) : null,
     deckSize: game.deck.length,
-    isDiscarding: game.phase === 'discarding'
+    isDiscarding: game.phase === 'discarding',
+    isFantasyPlacing:game.phase==='fantasyPlacing',
+    isFantasyFinalDiscard:game.phase==='fantasyFinalDiscard',
+    isTrueFantasyPlayer:game.phase==='trueFantasy'
   };
 }
 
@@ -659,27 +828,7 @@ function broadcast(message) {
 
 /* UPDATED */
 
- function handleFantasyDiscard(ws, data) {
-	 const player = findPlayerByWS(ws);
-  if (!player || game.phase !== 'fantasyDiscard' || game.currentPlayer !== player.id) return;
-
-  const { cardId } = data;
-  const cardIndex = player.hand.findIndex(c => c.id === cardId);
-  
-  if (cardIndex === -1) return;
-
-  player.discards.push(player.hand[cardIndex]);
-  player.hand.splice(cardIndex, 1);
-  
-  // Переход к обычной игре
-  game.phase = 'placing';
-  game.currentPlayer = Object.keys(game.players)[0];
-  game.fantasy.cardsDealt = false;
-  game.cardsToPlace = 13; // 14 - 1 сброшенная
-  
-  broadcastGameState();
-	
-}
+ 
 function calculateScores() {
 
   const players = Object.values(game.players);
@@ -703,16 +852,17 @@ console.log("***** PLAYERS ****** ", player1, player2);
     if (!player.hasFoul) {
       player.fantasyCandidate = checkFantasy(player);
       console.log("player.fantasyCandidate ", player.fantasyCandidate);
+      game.fantasy.activePlayer = player.id;
     }
   });
 
   // Проверяем фолы (нарушение иерархии рядов)
   players.forEach(player => {
-    const errors = validateRowOrder(player.board);
+   /* const errors = validateRowOrder(player.board);
     player.hasFoul = errors.length > 0;
     if (player.hasFoul) {
       player.foulMessage = 'Фол! Нарушена иерархия рядов';
-    }
+    }*/
   });
    [player1, player2].forEach(player => {
     if (!player.hasFoul) {
@@ -740,10 +890,11 @@ console.log("***** PLAYERS ****** ", player1, player2);
       }
     }
   });
+  /*
 if(player1.hasFoul == true && player2.hasFoul == true){
 	console.log(player1.hasFoul,'==',player2.hasFoul);
 	return;
-}
+}*/
   // Если у одного игрока фол, другой автоматически побеждает
   if (player1.hasFoul !== player2.hasFoul) {
      const winner = player1.hasFoul ? player2 : player1;
@@ -888,7 +1039,7 @@ if(player2.royalties.bottom.amount > player1.royalties.bottom.amount){
     player.combinations = checkCombinations(player.board);
   });
  [player1, player2].forEach(player => {
-    if (player.fantasyCandidate || (!player.hasFoul && checkFantasyRepeat(player))) {
+    if (player.fantasyCandidate /*|| (!player.hasFoul && checkFantasyRepeat(player))*/) {
       game.fantasy.nextFantasyCandidate = player.id;
     }
   });
@@ -923,59 +1074,6 @@ function compareLines(line) {
   }
   // При равенстве очков никто не получает очков за линию
 }
-/*
-function getLineStrength(cards) {
-	console.log('getLineStrength');
-  if (!cards.every(c => c)) return 0; // Неполные ряды слабее
-  
-  const values = cards.map(c => getCardValue(c.rank));
-  const suits = cards.map(c => c.suit);
-  const rankCounts = countRanks(cards);
-  
-  // Определяем силу комбинации (чем выше число, тем сильнее комбинация)
-  if(cards.length === 3){
-	  if (isThreeOfAKind(rankCounts)){
-		  return 300;// + Math.max(...values);
-	  }else if(isPair(rankCounts)){
-		  const pairRank = Object.keys(rankCounts).find(r=> rankCounts[r] ===2);
-		  return 200;// + getCardValue(pairRank);
-	  }else{
-		  return Math.max(...values);
-	  }
-  }else if(cards.length === 5){
-	  
-  
-  if (isRoyalFlush(values, suits)) return 100;
-  if (isStraightFlush(values, suits)) return 90;//+values[4];
-  if (isFourOfAKind(rankCounts)) {
-	  const fourRank = Object.keys(rankCounts).find(r=> rankCounts[r]===4);
- return 80;//+getCardValue(fourRank);
- }
-  if (isFullHouse(rankCounts)){
-	  const threeRank = Object.keys(rankCounts).find(r=>rankCounts[r]===3);
-	   return 70;//+getCardValue(threeRank);
-   }
-  if (isFlush(suits)) return 60;//+Math.max(...values);
-  if (isStraight(values)) return 50;//+values[4];
-  if (isThreeOfAKind(rankCounts)){
-	  const threeRank = Object.keys(rankCounts).find(r=>rankCounts[r]===3);
-	   return 40;//+getCardValue(threeRank);
-   }
-  if (isTwoPairs(rankCounts)) {
-	  const pairs=Object.keys(rankCounts);
-	  const highPair=Math.max(...pairs.map(getCardValue));
-	  return 30;//+highPair;
-  }
-  if (isPair(rankCounts)){
-	  const pairRank = Object.keys(rankCounts).find(r=> rankCounts[r] ===2);
-	   return 20;//+getCardValue(pairRank);
-   }
-  
-  return Math.max(...values); // Старшая карта
-}
-}
-
-*/
 
 function calculateRoyalties(board) {
   const royalties = {
@@ -1185,5 +1283,4 @@ function getRowAbsoluteStrength(cards) {
 }
 }
 }
-
 

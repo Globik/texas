@@ -558,12 +558,14 @@
     const opponentBoardEl = document.getElementById('opponentBoard');
     const playerDiscardsEl = document.getElementById('playerDiscards');
     const opponentDiscardsEl = document.getElementById('opponentDiscards')
+    var SUBTYPE=null;
     // Game state
     let playerId = null;
     let selectedCard = null;
     let ws = null;
 let gameState = null; 
 function goready(el){
+	//alert('ready')
 	
 	let a = document.querySelectorAll(".scoretotal");
 	a.forEach(function(el, i){
@@ -649,13 +651,23 @@ function goready(el){
           break;
         case 'gameState':
           updateGameState(data);
+          if(data.phase=='fantasyPlacing'){
+			 
+		  }
           break;
         case 'error':
           showError(data.message);
           break;
            case 'fantasyStart':
-           alert('fantasyStart')
-      showFantasyNotification(data.playerId);
+          // alert('fantasyStart')
+           
+      //showFantasyNotification(data.playerId);
+     // fantasyClick(data);
+    //  goready()
+     if(data.playerId==playerId){
+				  showFantasyNotification(playerId);
+				  SUBTYPE = true;
+			  }
       break;
       case 'fucker':
      // alert(JSON.stringify(data));
@@ -677,6 +689,7 @@ function goready(el){
 	  AMPER = 0;
   //}
       break;
+      
       }
     }
     
@@ -726,7 +739,7 @@ if (data.phase === 'fantasyDiscard' && data.playerId === playerId) {
         playerListEl.appendChild(playerEl);
       });
 
-      readyBtn.disabled = !playerId || data.players.length < 1;
+      readyBtn.disabled = (!playerId || data.players.length<1);
     }
 
     function handleJoined(data) {
@@ -744,6 +757,8 @@ function deleteData(){
 }
     // Game state functions
     function updateGameState(data) {
+		//if(data.phase=='discarding'){alert('discarding')}
+		 gameState = data;
       // Show game area if we were in lobby
       if (data.phase !== 'waiting') {
         lobbyEl.style.display = 'none';
@@ -756,13 +771,12 @@ function deleteData(){
       // Update boards
       updateBoard(data.player.board, playerBoardEl, true, data.player.combinations);
       if (data.opponent) {
-       // opponentNameEl.textContent = data.opponent.name || 'Opponent';
+       
         updateBoard(data.opponent.board, opponentBoardEl, false, data.opponent.combinations);
-       // opponentScoreEl.textContent = data.opponent.score !== null ? `Score: ${data.opponent.score}` : '';
+      
       }
 
-      // Update scores
-    //  playerScoreEl.textContent = data.player.score !== null ? `Score: ${data.player.score}` : '';
+     
 
       // Update discards
       updateDiscards(data.player.discards, playerDiscardsEl);
@@ -772,13 +786,10 @@ function deleteData(){
 
       // Update game status
       updateGameStatus(data);
-      
+      /*
       if (data.phase === 'fantasyDiscard' && data.playerId === playerId) {
-  gameStatusEl.innerHTML = `
-    <div style="color: gold; font-weight: bold;">
-      Выберите 1 карту из 14 для сброса
-    </div>
-  `;
+ // gameStatusEl.innerHTML = ' <div style="color: gold; font-weight: bold;">  Выберите 1 карту из 14 для сброса </div>';
+  
     const cards = playerHandEl.querySelectorAll('.card');
   cards.forEach(card => {
     card.onclick = function() {
@@ -788,14 +799,24 @@ function deleteData(){
       }));
     };
   });
+  
 }
       
-      
+   */   
      // alert(data.round)
       
-      
+      if(selectedCard){
+		  var selectedCardEl = playerHand.querySelector(`.card[data-id="${selectedCard}"]`);
+		  if(selectedCardEl){
+			  selectCardEl.classList.remove('selected')
+		  }
+		  selectedCard = null;
+		  clearHighlights()
+	  }
     
-  
+  if(data.phase==='placing' && data.currentPlayer===playerId){
+	  activateCardHandlers()
+  }
   // Отображаем информацию о линиях и бонусах
   if (data.player) {
 	  console.warn('data.player ', data.player)
@@ -1083,10 +1104,31 @@ function getLineWinsText(lineWins) {
       
       
       
-      
+      function activateCardHandlers() {
+  alert('Activating card handlers for current player');
+  
+  const cards = playerHandEl.querySelectorAll('.card');
+  cards.forEach(card => {
+    // Удаляем старые обработчики через клонирование
+    const newCard = card.cloneNode(true);
+    card.parentNode.replaceChild(newCard, card);
+  });
+  
+  // Добавляем новые обработчики на свежие элементы
+  const newCards = playerHandEl.querySelectorAll('.card');
+  newCards.forEach(card => {
+    card.addEventListener('click', () => {
+      console.log('Card clicked:', card.dataset.id);
+      const cardId = card.dataset.id;
+      selectCard(card, cardId);
+    });
+  });
+  
+  console.log(`Card handlers activated for ${newCards.length} cards`);
+}
       
     
-
+/*
     function updatePlayerHand(hand) {
       playerHandEl.innerHTML = '';
       if (hand) {
@@ -1098,7 +1140,7 @@ function getLineWinsText(lineWins) {
         });
       }
     }
-
+*/
     function updateBoard(board, boardEl, isInteractive, combinations) {
       for (const row of ['top', 'middle', 'bottom']) {
         const rowEl = boardEl.querySelector(`[data-row="${row}"]`);
@@ -1172,9 +1214,15 @@ function getLineWinsText(lineWins) {
 		}
           break;
         case 'discarding':
+        if(data.currentPlayer === playerId){
           statusText = 'Select a card to discard';
-          setupDiscardPhase();
+         // setupDiscardPhase();
+	  }
           break;
+          case 'fantasyDiscard':
+          if(data.currentPlayer === playerId){
+		//	  setupFantasyDiscardPhase()
+		  }
         case 'scoring':
           statusText = 'Game over! Calculating scores...';
           break;
@@ -1197,94 +1245,351 @@ function getLineWinsText(lineWins) {
 
     // Card functions
     function createCardElement(card) {
+		//alert(2)
 	//console.log(card)
       if (!card) return null;
       
       const cardEl = document.createElement('div');
       cardEl.className = `card ${['♥', '♦'].includes(card.suit) ? 'red' : 'black'}`;
       cardEl.dataset.id = card.id;
+      cardEl.setAttribute('data-fuck', 'fucking')
       cardEl.innerHTML = `
         <div class="card-value">${card.rank}</div>
         <div class="card-suit">${card.suit}</div>
       `;
-      
+      /*
      // if (window.gameState && window.gameState.phase === 'placing') {
+		 
         cardEl.addEventListener('click', () => {
+			if(gameState && gameState.phase === 'placing' ||
+			gameState.phase === 'discarding' ||
+			gameState.phase  === 'fantasyDiscard' &&
+			gameState.currentPlayer === playerId) {
 			console.log(cardEl, card.id)
-        selectCard(cardEl, card.id)});
-	//}else{
-	//	console.warn('no gameState ',  gameState)
-	//}
-      
+        selectCard(cardEl, card.id)
+	}
+        });
+	
+	*/
       
       return cardEl;
     }
 
-    function selectCard(cardEl, cardId) {
-      // Deselect if same card
-      if (selectedCard === cardId) {
-        cardEl.classList.remove('selected');
-        selectedCard = null;
-        clearHighlights();
-        return;
-      }
-      
-      // Deselect previous
-      if (selectedCard) {
-        const prevCard = playerHandEl.querySelector(`.card[data-id="${selectedCard}"]`);
-        if (prevCard) prevCard.classList.remove('selected');
-      }
-      
-      // Select new
-      cardEl.classList.add('selected');
-      selectedCard = cardId;
-       if (gameState && gameState.phase === 'placing') {
-      highlightValidSlots();
+function handleCardClick(cardEl, cardId) {
+  if (!gameState) {
+    console.log('No game state');
+    return;
   }
+
+  console.log('Card clicked:', cardId, 'Phase:', gameState.phase, 'Current player:', gameState.currentPlayer);
+
+  // Проверяем, может ли игрок сейчас делать ход
+  const canInteract = 
+    (gameState.phase === 'fantasyPlacing') || // В фантазии оба игрока могут ходить
+    (gameState.currentPlayer === playerId && gameState.phase === 'placing') ||
+    (gameState.currentPlayer === playerId && gameState.phase === 'discarding') ||
+    (gameState.currentPlayer === playerId && gameState.phase === 'fantasyFinalDiscard');
+
+  if (!canInteract) {
+    console.log('Cannot interact now');
+    //return;
+  }
+//alert(SUBTYPE)
+  console.error(' Обработка разных фаз ', gameState.phase)
+  switch (gameState.phase) {
+    case 'fantasyPlacing':
+    case 'placing': 
+
+      handleCardSelection(cardEl, cardId);
+      break;
+      
+    case 'discarding':
+    case 'fantasyFinalDiscard':
+      handleCardDiscard(cardId);
+      break;
+  }
+}
+
+function handleCardSelection(cardEl, cardId) {
+	//alert(33)
+  // Если уже выбрана эта карта - снимаем выделение
+  if (selectedCard === cardId) {
+    cardEl.classList.remove('selected');
+    selectedCard = null;
+    clearHighlights();
+    return;
+  }
+
+  // Снимаем выделение с предыдущей карты
+  if (selectedCard) {
+    const prevSelected = playerHandEl.querySelector(`.card[data-id="${selectedCard}"]`);
+    if (prevSelected) prevSelected.classList.remove('selected');
+  }
+
+  // Выделяем новую карту
+  cardEl.classList.add('selected');
+  selectedCard = cardId;
+
+  // Подсвечиваем доступные слоты
+  highlightValidSlots();
+}
+
+function handleCardDiscard(cardId) {
+//	alert('discard'+cardId)
+  // Определяем какое действие отправлять
+  let action = 'discard';
+  if (gameState.phase === 'fantasyFinalDiscard') {
+    if(SUBTYPE)action = 'fantasyDiscard';
+  }
+
+  //alert(`Sending ${action} for card:`+ cardId);
+  
+  ws.send(JSON.stringify({
+    action: action,
+    cardId: cardId
+  }));
+
+  // Снимаем выделение
+  const selectedCardEl = playerHandEl.querySelector(`.card[data-id="${cardId}"]`);
+  if (selectedCardEl) {
+    selectedCardEl.classList.remove('selected');
+  }
+  selectedCard = null;
+}
+
+
+function selectCard(cardEl, cardId) {
+	alert(5)
+  if (!gameState) {
+    console.log('No game state');
+    return;
+  }
+alert(3)
+  console.log('Select card called, phase:', gameState.phase, 'currentPlayer:', gameState.currentPlayer, 'playerId:', playerId);
+
+  // ОБЫЧНЫЙ РЕЖИМ - размещение карт
+  if (gameState.phase === 'placing' && gameState.currentPlayer === playerId) {
+    console.log('Normal placing mode activated');
+    
+    // Если уже выбрана эта карта - снимаем выделение
+    if (selectedCard === cardId) {
+      cardEl.classList.remove('selected');
+      selectedCard = null;
+      clearHighlights();
+      return;
     }
 
-    function highlightValidSlots() {
+    // Снимаем выделение с предыдущей карты
+    if (selectedCard) {
+      const prevSelected = playerHandEl.querySelector(`.card[data-id="${selectedCard}"]`);
+      if (prevSelected) prevSelected.classList.remove('selected');
+    }
+
+    // Выделяем новую карту
+    cardEl.classList.add('selected');
+    selectedCard = cardId;
+
+    // Подсвечиваем доступные слоты
+    highlightValidSlots();
+    return;
+  }
+
+  // РЕЖИМ ФАНТАЗИИ - размещение карт (оба игрока могут)
+  if (gameState.phase === 'fantasyPlacing') {
+	  alert(2)
+    console.log('Fantasy placing mode activated');
+    
+    if (selectedCard === cardId) {
+      cardEl.classList.remove('selected');
+      selectedCard = null;
       clearHighlights();
-      if (!selectedCard || !gameState || gameState.phase !== 'placing') return;
-      /*const slots = playerBoardEl.querySelectorAll('.board-slot:empty');
-      slots.forEach(slot => {
-        slot.classList.add('highlight');
-        const row = slot.closest('.board-row').dataset.row;
-        const pos = parseInt(slot.dataset.pos);
-        slot.onclick = () => placeCard(row, pos);
-      });
-      */
-      
-      const slots = playerBoardEl.querySelectorAll('.board-slot:empty');
+      return;
+    }
+
+    if (selectedCard) {
+      const prevSelected = playerHandEl.querySelector(`.card[data-id="${selectedCard}"]`);
+      if (prevSelected) prevSelected.classList.remove('selected');
+    }
+
+    cardEl.classList.add('selected');
+    selectedCard = cardId;
+    highlightValidSlots();
+    return;
+  }
+
+  // РЕЖИМ СБРОСА КАРТ
+  if ((gameState.phase === 'discarding' || gameState.phase === 'fantasyFinalDiscard') && 
+      gameState.currentPlayer === playerId) {
+    console.log('Discard mode activated');
+    
+    let actionType = 'discard';
+    if (gameState.phase === 'fantasyFinalDiscard') {
+      actionType = 'fantasyDiscard';
+    }
+    
+    ws.send(JSON.stringify({
+      action: actionType,
+      cardId: cardId
+    }));
+    
+    return;
+  }
+
+  console.log('Card selection not allowed in current state');
+}
+
+function fucking(){
+	return;
+	alert(1)
+	//alert(this.dataset.id);
+	//return;
+      console.log('Card clicked:', this.dataset.id);
+      alert('Card clicked: '+ this.dataset.id)
+      let cardid=this.dataset.id;
+      selectedCard=cardid;
+      this.classList.add('selected')
+      //highlight();
+      const eli=document.querySelectorAll(".card");
+	eli.forEach(card => {
+		console.log('card ',card)
+    //card.addEventListener('click', fucking,false);
+   // fantasyClick()
+})
+    
+}
+
+
+function fantasyClick(data){
+	const eli=document.querySelectorAll('[data-fuck="fucking"]');
+	eli.forEach(card => {
+   card.addEventListener('click', fucking,false);
+   //card.onclick=fucking;
+})
+}
+
+
+function updatePlayerHand(hand) {
+  playerHandEl.innerHTML = '';
+  if (hand) {
+    hand.forEach(card => {
+      if (card) {
+        const cardEl = createCardElement(card);
+        playerHandEl.appendChild(cardEl);
+      }
+    });
+  }
+  
+  // Перепривязываем обработчики после обновления руки
+  bindCardHandlers();
+}
+
+// Новая функция для привязки обработчиков
+function bindCardHandlers() {
+  const cards = playerHandEl.querySelectorAll('.card');
+  cards.forEach(card => {
+    // Удаляем старые обработчики (если есть)
+    card.removeEventListener('click', card._clickHandler);
+    
+    // Создаем новый обработчик
+    const clickHandler = () => {
+      const cardId = card.dataset.id;
+      handleCardClick(card, cardId);
+    };
+    
+    // Сохраняем ссылку на обработчик для возможности удаления
+    card._clickHandler = clickHandler;
+    card.addEventListener('click', clickHandler);
+  });
+}
+
+
+function highlight(){
+	const slots = playerBoardEl.querySelectorAll('.board-slot:empty');
+  console.log(`Found ${slots.length} empty slots to highlight`);
+  
   slots.forEach(slot => {
     slot.classList.add('highlight');
     const row = slot.closest('.board-row').dataset.row;
     const pos = parseInt(slot.dataset.pos);
     
     slot.onclick = () => {
+      console.log(`Placing card to ${row} row, position ${pos}`);
+      
+      // Определяем действие в зависимости от фазы
+      let action = 'placeCard';
+      
       ws.send(JSON.stringify({
-        action: 'placeCard',
+        action: action,
         cardId: selectedCard,
-        row,
+        row: row,
         position: pos
       }));
       
       // Снимаем выделение после размещения
       const selectedCardEl = playerHandEl.querySelector(`.card[data-id="${selectedCard}"]`);
-      if (selectedCardEl) selectedCardEl.classList.remove('selected');
+      if (selectedCardEl) {
+        selectedCardEl.classList.remove('selected');
+      }
+      //selectedCard = null;
+      //clearHighlights();
+    };
+  });
+}
+function highlightValidSlots() {
+  clearHighlights();
+  
+  if (!selectedCard || !gameState) {
+    console.log('No card selected or no game state');
+    return;
+  }
+
+  // Проверяем, в какой фазе мы находимся
+  const canPlaceCards = (gameState.phase === 'placing' && gameState.currentPlayer === playerId) || 
+                       (gameState.phase === 'fantasyPlacing');
+  
+  if (!canPlaceCards) {
+    console.log('Cannot place cards in current phase');
+    return;
+  }
+
+  const slots = playerBoardEl.querySelectorAll('.board-slot:empty');
+  console.log(`Found ${slots.length} empty slots to highlight`);
+  
+  slots.forEach(slot => {
+    slot.classList.add('highlight');
+    const row = slot.closest('.board-row').dataset.row;
+    const pos = parseInt(slot.dataset.pos);
+    
+    slot.onclick = () => {
+      console.log(`Placing card to ${row} row, position ${pos}`);
+      let ba={}
+      if(SUBTYPE){
+		  ba.subtype='trueFantasy'
+	  }
+     // alert(99)
+      // Определяем действие в зависимости от фазы
+      let action = 'placeCard';
+      ba.action=action;
+      ba.cardId=selectedCard;
+      ba.row=row;
+      ba.position=pos;
+      let suka=JSON.stringify(ba)
+      //alert(suka)
+      ws.send(suka);
+      
+      // Снимаем выделение после размещения
+      const selectedCardEl = playerHandEl.querySelector(`.card[data-id="${selectedCard}"]`);
+      if (selectedCardEl) {
+        selectedCardEl.classList.remove('selected');
+      }
       selectedCard = null;
       clearHighlights();
     };
   });
-      
-      
-      
-      
-      
-      
-      
-      
-    }
+}
+
+
+
 
     function clearHighlights() {
       const slots = playerBoardEl.querySelectorAll('.board-slot');
@@ -1293,25 +1598,34 @@ function getLineWinsText(lineWins) {
         slot.onclick = null;
       });
     }
+function placeCard(row, position) {
+  if (!selectedCard) return;
+  
+  console.log('Placing card:', selectedCard, 'at:', row, position);
+  let ba={}
+  // Определяем действие в зависимости от фазы
+  ba.action = 'placeCard';
+  if (gameState.phase === 'fantasyPlacing') {
+    b.action = 'placeCard'; // В фантазии используется тот же action
+  }
+  if(SUBTYPE){
+	  ba.subtype='trueFantasy';
+  }
+  ba.cardIt = selectedCard;
+  ba.row = row;
+  ba.position = position;
+  alert(JSON.stringify(ba))
+  ws.send(JSON.stringify(ba));
+  
+  // Снимаем выделение
+  const selectedCardEl = playerHandEl.querySelector(`.card[data-id="${selectedCard}"]`);
+  if (selectedCardEl) {
+    selectedCardEl.classList.remove('selected');
+  }
+  selectedCard = null;
+  clearHighlights();
+}
 
-    function placeCard(row, position) {
-      if (!selectedCard) return;
-      
-      ws.send(JSON.stringify({
-        action: 'placeCard',
-        cardId: selectedCard,
-        row,
-        position
-      }));
-      
-      selectedCard = null;
-      clearHighlights();
-    }
-
-    // Error handling
-   // function showError(message) {
-     // errorMessageEl
-      
 
 function showError(message) {
       errorMessageEl.textContent = message;
