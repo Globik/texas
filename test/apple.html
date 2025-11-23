@@ -664,10 +664,20 @@ function goready(el){
       //showFantasyNotification(data.playerId);
      // fantasyClick(data);
     //  goready()
-     if(data.playerId==playerId){
-				  showFantasyNotification(playerId);
+    let a=data.playerId.find(player=> data.playerId.includes(playerId));
+    //alert(a)
+    data.playerId.forEach(function(el,i){
+		//alert(el)
+		if(el==playerId){
+			showFantasyNotification(playerId);
 				  SUBTYPE = true;
-			  }
+		}
+	})
+	
+    // if(a==playerId){
+	//			  showFantasyNotification(playerId);
+		//		  SUBTYPE = true;
+		//	  }
       break;
       case 'fucker':
      // alert(JSON.stringify(data));
@@ -1566,7 +1576,7 @@ function highlightValidSlots() {
       if(SUBTYPE){
 		  ba.subtype='trueFantasy'
 	  }
-     // alert(99)
+     // alert(99+' '+SUBTYPE)
       // Определяем действие в зависимости от фазы
       let action = 'placeCard';
       ba.action=action;
