@@ -1115,7 +1115,7 @@ function getLineWinsText(lineWins) {
       
       
       function activateCardHandlers() {
-  alert('Activating card handlers for current player');
+ // alert('Activating card handlers for current player');
   
   const cards = playerHandEl.querySelectorAll('.card');
   cards.forEach(card => {
@@ -1369,12 +1369,12 @@ function handleCardDiscard(cardId) {
 
 
 function selectCard(cardEl, cardId) {
-	alert(5)
+	//alert(5)
   if (!gameState) {
     console.log('No game state');
     return;
   }
-alert(3)
+//alert(3)
   console.log('Select card called, phase:', gameState.phase, 'currentPlayer:', gameState.currentPlayer, 'playerId:', playerId);
 
   // ОБЫЧНЫЙ РЕЖИМ - размещение карт

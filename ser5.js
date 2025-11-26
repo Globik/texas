@@ -20,6 +20,10 @@ const game = {
   phase: 'waiting', // waiting -> dealing -> placing -> discarding -> scoring -> fantasyDiscard
   turn: 0,
   round: 0,
+  count:14,
+  u:4,
+  i:0,
+  len:[5,3,3,3,3],
   dealSequence: [5, 5, 3, 3, 3, 3,3,3,3,3],
   nextindex:[5,3,3,3,3],
   currentnextindex:0,
@@ -74,7 +78,7 @@ wss.on('connection', (ws) => {
 
   ws.on('message', (message) => {
     const data = JSON.parse(message);
-    console.log(data);
+    console.log('DATA ',data,game.phase);
     switch (data.action) {
       case 'join':
         handleJoin(ws, data);
@@ -132,8 +136,13 @@ function handleJoin(ws, data) {
     score: 0,
     combinations: null,
     hasFoul: false,
+    count:0,
+    cardsToPlace:0,
     lineWins: {},
     dopochko: 0,
+    u:4,
+  i:0,
+  len:[5,3,3,3,3],
     foulMessage: '',
     royalties : {
 	top: { amount: 0, description: '', dohodscore: 0 },
@@ -191,6 +200,7 @@ function startGame(ws) {
   dealCards(ws);
  // game.currentPlayer=null;
  const playerid = Object.keys(game.players)[1];
+ const playerid2 = Object.keys(game.players)[0];
   //const [player1, player2] = players;
   console.warn('player SSSSSSSSSSSUKAAAAAAAAAAAAAAA id ',playerid);
  /* [player1, player2].forEach(player => {
@@ -201,7 +211,8 @@ function startGame(ws) {
     }
   });*/
   game.fantasy = {
-    activePlayers:[playerid],//[ ...game.fantasy.nextFantasyCandidates],
+    //activePlayers:[playerid/*,playerid2*/]
+     activePlayers:[ ...game.fantasy.nextFantasyCandidates],
     cardsDealt: false,
     nextFantasyCandidates: []
   };
@@ -215,28 +226,25 @@ function startGame(ws) {
   const opponentid = Object.keys(game.players)[(game.turn+1) % 2];
   console.log('oppontentId ', opponentid);
   if(game.turn == 0){
-//  if(k == 0){
+
 	  broadcast(JSON.stringify({type:'fucker', fishka: opponentid}));// if turn o ; opp=1
-	//  k++;
- // }
-  //console.log('game.players ', game.players);
-}else{
 	
-	//if(k==1) {
-		
-broadcast(JSON.stringify({type:'fucker', fishka: opponentid }));
-//k=0;
-//}
+}else{
+	broadcast(JSON.stringify({type:'fucker', fishka: opponentid }));
+
 }
 }
 
 var u=4;
 var i=0;
 const suka=[5,3,3,3,3];
+
+
 function dealCards(ws) {
 	const playerid = Object.keys(game.players)[1];
 	const playerid2 = Object.keys(game.players)[0];
-	game.fantasy.activePlayers=[playerid,playerid2]
+//	game.fantasy.activePlayers=[playerid,/*playerid2*/]
+game.fantasy.activePlayers=[ ...game.fantasy.nextFantasyCandidates];
 	console.log('dealCards ',game.fantasy.activePlayers);
 	
 	if(game.fantasy.activePlayers.length > 0 && !game.fantasy.cardsDealt){
@@ -244,6 +252,7 @@ function dealCards(ws) {
 			if(game.fantasy.activePlayers.includes(player.id)){
 				player.hand=game.deck.splice(0,14);
 				player.cardsToPlace=13;
+				player.count=0;
 				player.isFantasyPlayer=true;
 				broadcast(JSON.stringify({
       type: 'fantasyStart',
@@ -252,6 +261,9 @@ function dealCards(ws) {
 			}else{
 				player.hand=game.deck.splice(0,5);
 				player.cardsToPlace=5;
+				player.u=4;
+				player.i=0;
+				player.len=[5,3,3,3,3];
 				player.isFantasyPlayer=false;
 			}
 			
@@ -275,14 +287,12 @@ function dealCards(ws) {
     // Обычный игрок получает стандартные 5 карт
     const normalPlayerId = Object.keys(game.players).find(player=> !game.fantasy.activePlayers.includes(player.id));
    // const normalPlayerId=Object.values(game.players).filter(player=> !game.fantasy.activePlayers.includes(player.id));
-    game.players[normalPlayerId].hand = game.deck.splice(0, u);
-    game.discardPhase = u === 3;
+    game.players[normalPlayerId].hand = game.deck.splice(0, game.players[normalPlayerId].u);
+    let p=game.players[normalPlayerId];
+    game.discardPhase = p.u === 3;
    
-	console.log("***** I and suka.length", i,' ', suka.length);
-    if(i==suka.length-1){
-		console.warn('i=',i);
-		
-	}
+//	console.log("***** I and suka.length", i,' ', suka.length);
+   
 	console.log("************* hand length", game.players[normalPlayerId].hand);
 	if(game.players[normalPlayerId].hand.length==0){
 		checkFantasyCompletion();
@@ -394,6 +404,7 @@ if (game.currentDealIndex >= game.dealSequence.length) {
   game.players[playerId].hand = game.deck.splice(0, cardsToDeal);
   game.currentPlayer = playerId;
   game.phase = 'placing';
+  console.log("GAME PHASE ");
   game.cardsToPlace = cardsToDeal;
   game.discardPhase = cardsToDeal === 3;
   
@@ -559,13 +570,14 @@ if(game.fantasy.activePlayers >0){
 function handlePlaceCard(ws, data) {
   const player = findPlayerByWS(ws);
   console.warn("**** game.phase ********** ", game.phase);
-  game.phase='fantasyPlacing'
+ // game.phase='fantasyPlacing'
   if(game.phase=='fantasyPlacing'){
 	 
 	  console.log('is current Player? ',game.currentPlayer !== player.id);
 	//  const normalPlayerId=Object.keys(game.players).find(id=> id!==game.fantasy.activePlayer);
 	  const normalPlayerId=Object.values(game.players).filter(player=> !game.fantasy.activePlayers.includes(player.id));
 	  const normalPlayer=game.players[normalPlayerId];
+	  const p=game.players[player.id]
 	  console.log('activePlayer == player id ', game.fantasy.activePlayers,' ',normalPlayerId, ' player.id ', player.id);
 	  const { cardId, row, position } = data;
 	  console.log('cardId, row, position ',cardId,' ',row,' ',position);
@@ -577,31 +589,34 @@ function handlePlaceCard(ws, data) {
 
   player.board[row][position] = player.hand[cardIndex];
   player.hand.splice(cardIndex, 1);
-  var nextindex=game.nextindex[game.currentnextindex];//5
+ // var nextindex=game.nextindex[game.currentnextindex];//5
   
   //const suka=[5,3,3,3,3];
-  var luka=suka[i]
-  game.cardsToPlace=nextindex;//]game.nextindex[game.currentnextindex];
-  game.cardsToPlace=u;
-  u--;
+  //var luka=suka[i]
+  //game.cardsToPlace=nextindex;//]game.nextindex[game.currentnextindex];
+  console.log('normalplayer', p.u,p.u);
+  game.cardsToPlace=p.u;
+  p.u--;
  
-  nextindex++;
-   console.warn('Проверяем, нужно ли переходить в фазу сброса');
+ // nextindex++;
+   console.warn('Проверяем, нужно ли переходить в фазу сброса U',player.u);
   if (game.discardPhase && game.cardsToPlace === 2) {
-	  i++;
-	  u=suka[i];
+	  console.error('i must');
+	  p.i++;
+	  p.u=p.len[p.i];
+	  console.warn("u ", p.u, ' i ', p.i);
     game.phase = 'discarding';
     broadcastGameState();
     //game.phase='fantasyPlacing'
     return;
   }
-  console.log('game.cardsToPlace-- ', game.cardsToPlace, ' ',nextindex);
+  console.log('game.cardsToPlace-- ', game.cardsToPlace);
   if (game.cardsToPlace === 0) {
 	  console.log('game.cardsToPlace=0');
-	  i++;
-	  u=suka[i];
+	  p.i++;
+	  p.u=p.len[p.i];
 	  game.fantasy.cardsDealt = true;
-	  console.warn("u ", u, ' i ', i);
+	  console.warn("u ", p.u, ' i ', p.i);
 	  dealCards();
 	  checkFantasyCompletion();
   }
@@ -639,16 +654,23 @@ function handlePlaceCard(ws, data) {
 
 
 
-
+//let duka=[13,12,11,10]
 var l=14;
 function handleFantasyPlaceCard(ws, data){
-	
+	let duka=[13,12,11,10]
 		console.warn("handleFantasyPlaceCard");
 	const player = findPlayerByWS(ws);
 	if(!player || game.phase !== 'fantasyPlacing') {
 		console.error('somthing wrong');
 		return;
 	}
+	const normalPlayerId = Object.keys(game.players).find(p=> {
+		console.log('p ',p);
+		return p.id=player.id
+		});
+   // const normalPlayerId=Object.values(game.players).filter(player=> !game.fantasy.activePlayers.includes(player.id));
+ let bla= game.players[/*normalPlayerId*/player.id];//.hand = game.deck.splice(0, u);
+ console.log("BLA ",bla.id,' ', normalPlayerId,player.id);
 	const { cardId, row, position } = data;
 	const cardIndex=player.hand.findIndex(c=> c.id === cardId);
 	if(cardIndex===-1 || player.board[row][position !==null]){
@@ -657,17 +679,21 @@ function handleFantasyPlaceCard(ws, data){
 	 }
 	player.board[row][position]=player.hand[cardIndex];
 	player.hand.splice(cardIndex, 1);
-	console.warn("cardstodeal ", l);
+	const old=bla.cardsToPlace;
+	bla.cardsToPlace--;
+	//player.cardsToPlace=bla.cardsToPlace;
+	console.warn("cardstodeal ", old, ' ',bla.cardsToPlace);
 
-		
-		if(l==2){
-			console.log('ura cardstodeal ', l);
+		let v=duka[player.count]
+		console.log('v ', v);
+		if(bla.cardsToPlace == 0){
+			console.log('ura cardstodeal ', bla.cardsToPlace,' ', game.fantasy.activePlayers);
 			game.phase='fantasyFinalDiscard';
 			//game.currentPlayer=game.fantasy.activePlayer;
 		//	broadcastGameState();
-		l=15;
+	
 		}
-	l--;
+
 	broadcastGameState();
 	
 	
@@ -710,6 +736,7 @@ console.warn("HALI HALLO")
 		//checkFantasyCompletion();
 	}
 	//}else{
+	
   dealCards();
 //}
   //checkFantasyCompletion();
@@ -747,7 +774,7 @@ function handleFantasyDiscard(ws, data) {
 	
 }
 function checkFantasyCompletion(){
-	
+	console.error('check fantasy completion ',game.fantasy.activePlayers);
 	if(game.fantasy.activePlayers.length >=1){
 		const playerid = Object.keys(game.players)[1];
 	const playerid2 = Object.keys(game.players)[0];
@@ -760,13 +787,22 @@ function checkFantasyCompletion(){
 		console.log("CHECKCOMPLETIO ***", normalFinished,' ',normalFinished2);
 		if(normalFinished && normalFinished2){
 			console.warn("**** URA ****");
+			game.phase='scoring';
+		calculateScores();
+		broadcastGameState();
+		//game.phase='fantasyPlacing'
+		setTimeout(resetGame,5000);
 		}
 		return;
 	}
-	//	const fantasyPlayer=game.players[game.fantasy.activePlayer];
+	const normalPlayerId2=Object.keys(game.players).find(player=> game.fantasy.activePlayers.includes(player.id));
+	console.log('normalplayerid2', normalPlayerId2);
+		const fantasyPlayer=game.players[normalPlayerId2];
+		console.log('fantasyPlayer ',fantasyPlayer);
 	const normalPlayerId=Object.keys(game.players).find(player=> !game.fantasy.activePlayers.includes(player.id));
 	const normalPlayer=game.players[normalPlayerId];
-	const fantasyFinished = l ===1;
+	const fantasyFinished =!fantasyPlayer.hand || fantasyPlayer.hand.length===0;//l ===1;
+	//const fantasyFinished=
 	const normalFinished=!normalPlayer.hand || normalPlayer.hand.length===0;
 	console.log("**** L ****",l);
 	console.log('fantasyFinished && normalFinished ', fantasyFinished , normalFinished);
@@ -945,6 +981,8 @@ function resetGame() {
     player.hasFoul = false;
     player.ready = true;
     player.foulMessage = '';
+    player.i=0;
+    player.u=4;
   });
 
   game.phase = 'waiting';
@@ -1026,7 +1064,8 @@ function sanitizePlayerState(player, isSelf) {
    // ochko: player.ochko,
     dopochko: player.dopochko,
     royalties:player.royalties,
-    foulMessage: player.foulMessage
+    foulMessage: player.foulMessage,
+    cardsToPlace:player.cardsToPlace
   };
 }
 
@@ -1066,7 +1105,7 @@ console.log("***** PLAYERS ****** ", player1, player2);
     if (!player.hasFoul) {
       player.fantasyCandidate = checkFantasy(player);
       console.log("player.fantasyCandidate ", player.fantasyCandidate);
-      game.fantasy.activePlayer = player.id;
+     // game.fantasy.activePlayer = player.id;
     }
   });
 
@@ -1078,6 +1117,7 @@ console.log("***** PLAYERS ****** ", player1, player2);
       player.foulMessage = 'Фол! Нарушена иерархия рядов';
     }*/
   });
+  game.fantasy.activePlayers=[];
   const fantasyCandidates = [];
    [player1, player2].forEach(player => {
 	   if(!player.hasFoul && checkFantasy(player)){
@@ -1158,7 +1198,7 @@ players.forEach(player => {
     player.combinations = checkCombinations(player.board);
   });
 if (!winner.hasFoul && checkFantasyRepeat(winner)) {
-      game.fantasy.nextFantasyCandidate = winner.id;
+     // game.fantasy.nextFantasyCandidate = winner.id;
     }
 
   return;
@@ -1262,7 +1302,7 @@ if(player2.royalties.bottom.amount > player1.royalties.bottom.amount){
   });
  [player1, player2].forEach(player => {
     if (player.fantasyCandidate /*|| (!player.hasFoul && checkFantasyRepeat(player))*/) {
-      game.fantasy.nextFantasyCandidate = player.id;
+     // game.fantasy.nextFantasyCandidate = player.id;
     }
   });
 }
